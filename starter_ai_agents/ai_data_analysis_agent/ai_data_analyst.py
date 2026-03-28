@@ -3,7 +3,7 @@ import csv
 import streamlit as st
 import pandas as pd
 from agno.agent import Agent
-from agno.models.openai import OpenAIChat
+from agno.models.google import Gemini
 from agno.tools.duckdb import DuckDbTools
 from agno.tools.pandas import PandasTools
 
@@ -51,17 +51,20 @@ st.title("📊 Data Analyst Agent")
 # Sidebar for API keys
 with st.sidebar:
     st.header("API Keys")
-    openai_key = st.text_input("Enter your OpenAI API key:", type="password")
-    if openai_key:
-        st.session_state.openai_key = openai_key
+    gemini_api_key = st.text_input("Enter your Gemini API key:", type="password")
+    st.caption(
+        "Get your key from [Google AI Studio](https://aistudio.google.com/apikey)."
+    )
+    if gemini_api_key:
+        st.session_state.gemini_api_key = gemini_api_key
         st.success("API key saved!")
     else:
-        st.warning("Please enter your OpenAI API key to proceed.")
+        st.warning("Please enter your Gemini API key to proceed.")
 
 # File upload widget
 uploaded_file = st.file_uploader("Upload a CSV or Excel file", type=["csv", "xlsx"])
 
-if uploaded_file is not None and "openai_key" in st.session_state:
+if uploaded_file is not None and "gemini_api_key" in st.session_state:
     # Preprocess and save the uploaded file
     temp_path, columns, df = preprocess_and_save(uploaded_file)
     
@@ -84,7 +87,7 @@ if uploaded_file is not None and "openai_key" in st.session_state:
         
         # Initialize the Agent with DuckDB and Pandas tools
         data_analyst_agent = Agent(
-            model=OpenAIChat(id="gpt-4o", api_key=st.session_state.openai_key),
+            model=Gemini(id="gemini-3.1-pro-preview", api_key=st.session_state.gemini_api_key),
             tools=[duckdb_tools, PandasTools()],
             system_message="You are an expert data analyst. Use the 'uploaded_data' table to answer user queries. Generate SQL queries using DuckDB tools to solve the user's query. Provide clear and concise answers with the results.",
             markdown=True,
