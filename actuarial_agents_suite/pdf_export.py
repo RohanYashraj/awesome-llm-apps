@@ -1,28 +1,14 @@
-"""PDF export: Markdown agent output rendered as structured ReportLab flowables."""
+"""PDF export: Markdown → HTML → headless Chromium print PDF (Playwright).
+
+Uses the same rendering path as “Print to PDF” in Chrome—typical for chat/document export UIs.
+"""
 
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from io import BytesIO
-from typing import Any
-from xml.sax.saxutils import escape, quoteattr
+from xml.sax.saxutils import escape
 
-from bs4 import BeautifulSoup, NavigableString, Tag
-from reportlab.lib import colors
-from reportlab.lib.enums import TA_LEFT
-from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
-from reportlab.lib.units import inch
-from reportlab.platypus import (
-    HRFlowable,
-    ListFlowable,
-    ListItem,
-    Paragraph,
-    Preformatted,
-    SimpleDocTemplate,
-    Spacer,
-    Table,
-    TableStyle,
-)
+from bs4 import BeautifulSoup
 
 _MD_EXTENSIONS = [
     "markdown.extensions.extra",
@@ -30,247 +16,125 @@ _MD_EXTENSIONS = [
     "markdown.extensions.sane_lists",
 ]
 
-
-def _markdown_to_html(md: str) -> str:
-    import markdown
-
-    return markdown.markdown(md or "", extensions=_MD_EXTENSIONS)
-
-
-def _node_to_para_markup(node: Any) -> str:
-    """Convert inline / mixed-content nodes to ReportLab Paragraph markup."""
-    if isinstance(node, NavigableString):
-        return escape(str(node))
-    if not isinstance(node, Tag) or node.name is None:
-        return ""
-    name = node.name.lower()
-    if name in ("strong", "b"):
-        return "<b>" + "".join(_node_to_para_markup(c) for c in node.children) + "</b>"
-    if name in ("em", "i"):
-        return "<i>" + "".join(_node_to_para_markup(c) for c in node.children) + "</i>"
-    if name == "br":
-        return "<br/>"
-    if name == "code":
-        return '<font name="Courier" size="9">' + escape(node.get_text()) + "</font>"
-    if name == "a":
-        href = node.get("href") or ""
-        inner = "".join(_node_to_para_markup(c) for c in node.children)
-        # quoteattr() produces a quoted, escaped value; escape(..., True) is invalid (2nd arg is entities dict).
-        return f"<a href={quoteattr(href)} color=\"blue\">{inner}</a>"
-    if name in ("del", "s", "span", "mark", "sup", "sub"):
-        return "".join(_node_to_para_markup(c) for c in node.children)
-    return escape(node.get_text())
-
-
-def _paragraph_from_children(el: Tag, styles: dict[str, ParagraphStyle], style_key: str = "body") -> Paragraph:
-    text = "".join(_node_to_para_markup(c) for c in el.children)
-    return Paragraph(text, styles[style_key])
-
-
-def _list_to_flowable(el: Tag, styles: dict[str, ParagraphStyle]) -> ListFlowable:
-    bullet = "bullet" if el.name and el.name.lower() == "ul" else "1"
-    items: list[ListItem] = []
-    for li in el.find_all("li", recursive=False):
-        inner: list[Any] = []
-        for child in li.children:
-            if isinstance(child, NavigableString):
-                t = str(child)
-                if t.strip():
-                    inner.append(Paragraph(_node_to_para_markup(child), styles["list_item"]))
-            elif isinstance(child, Tag):
-                cn = child.name.lower()
-                if cn in ("ul", "ol"):
-                    inner.append(_list_to_flowable(child, styles))
-                elif cn == "p":
-                    inner.append(_paragraph_from_children(child, styles, "list_item"))
-                elif cn == "pre":
-                    inner.append(
-                        Preformatted(child.get_text(), styles["code_block"], maxLineLength=96)
-                    )
-                else:
-                    inner.append(Paragraph("".join(_node_to_para_markup(c) for c in child.children), styles["list_item"]))
-        if not inner:
-            items.append(ListItem(Paragraph(" ", styles["list_item"])))
-        elif len(inner) == 1:
-            items.append(ListItem(inner[0]))
-        else:
-            # Do not use KeepTogether here: it injects FrameBreak flowables that break
-            # inside ListFlowable (_FrameBreak.wrap should never be called).
-            items.append(ListItem(inner))
-    return ListFlowable(
-        items,
-        bulletType=bullet,
-        leftIndent=18,
-        bulletFontName="Helvetica",
-        start=None if bullet == "bullet" else 1,
-    )
-
-
-def _block_to_flowables(el: Tag, styles: dict[str, ParagraphStyle]) -> list[Any]:
-    name = (el.name or "").lower()
-    out: list[Any] = []
-
-    if name in ("h1", "h2", "h3", "h4"):
-        sk = {"h1": "h1", "h2": "h2", "h3": "h3", "h4": "h3"}.get(name, "h3")
-        text = "".join(_node_to_para_markup(c) for c in el.children)
-        out.append(Paragraph(text, styles[sk]))
-        out.append(Spacer(1, 0.08 * inch))
-    elif name == "p":
-        out.append(_paragraph_from_children(el, styles, "body"))
-        out.append(Spacer(1, 0.06 * inch))
-    elif name == "blockquote":
-        inner_html = "".join(_node_to_para_markup(c) for c in el.children)
-        out.append(Paragraph(inner_html, styles["quote"]))
-        out.append(Spacer(1, 0.06 * inch))
-    elif name == "pre":
-        raw = el.get_text()
-        out.append(Preformatted(raw, styles["code_block"], maxLineLength=96))
-        out.append(Spacer(1, 0.08 * inch))
-    elif name in ("ul", "ol"):
-        out.append(_list_to_flowable(el, styles))
-        out.append(Spacer(1, 0.08 * inch))
-    elif name == "table":
-        rows: list[list[str]] = []
-        for tr in el.find_all("tr", recursive=True):
-            cells = [c.get_text(" ", strip=True) for c in tr.find_all(("th", "td"), recursive=False)]
-            if cells:
-                rows.append(cells)
-        if rows:
-            col_n = max(len(r) for r in rows)
-            norm = [r + [""] * (col_n - len(r)) for r in rows]
-            data = [[Paragraph(escape(c), styles["table_cell"]) for c in row] for row in norm]
-            t = Table(data, colWidths=[None] * col_n)
-            t.setStyle(
-                TableStyle(
-                    [
-                        ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
-                        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#eeeeee")),
-                        ("VALIGN", (0, 0), (-1, -1), "TOP"),
-                        ("LEFTPADDING", (0, 0), (-1, -1), 4),
-                        ("RIGHTPADDING", (0, 0), (-1, -1), 4),
-                        ("TOPPADDING", (0, 0), (-1, -1), 4),
-                        ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
-                    ]
-                )
-            )
-            out.append(t)
-            out.append(Spacer(1, 0.1 * inch))
-    elif name == "hr":
-        out.append(Spacer(1, 0.06 * inch))
-        out.append(HRFlowable(width="100%", thickness=0.5, color=colors.grey))
-        out.append(Spacer(1, 0.06 * inch))
-    return out
-
-
-def _html_to_story(html: str, styles: dict[str, ParagraphStyle]) -> list[Any]:
-    soup = BeautifulSoup(html, "html.parser")
-    root = soup.body if soup.body else soup
-    story: list[Any] = []
-    for child in root.children:
-        if isinstance(child, NavigableString) and not str(child).strip():
-            continue
-        if isinstance(child, Tag):
-            story.extend(_block_to_flowables(child, styles))
-    return story
-
-
-def _build_styles() -> dict[str, ParagraphStyle]:
-    base = getSampleStyleSheet()
-    body = ParagraphStyle(
-        "PDFBody",
-        parent=base["Normal"],
-        fontSize=10,
-        leading=13,
-        spaceAfter=6,
-        alignment=TA_LEFT,
-    )
-    return {
-        "title": ParagraphStyle(
-            "PDFTitle",
-            parent=base["Title"],
-            fontSize=16,
-            leading=20,
-            spaceAfter=8,
-        ),
-        "meta": ParagraphStyle(
-            "PDFMeta",
-            parent=base["Normal"],
-            fontSize=9,
-            textColor=colors.HexColor("#555555"),
-            spaceAfter=14,
-        ),
-        "h_section": ParagraphStyle(
-            "PDFHSection",
-            parent=base["Heading2"],
-            fontSize=12,
-            leading=15,
-            spaceBefore=10,
-            spaceAfter=8,
-            textColor=colors.HexColor("#222222"),
-        ),
-        "h1": ParagraphStyle(
-            "PDFH1",
-            parent=base["Heading1"],
-            fontSize=14,
-            leading=17,
-            spaceBefore=6,
-            spaceAfter=6,
-        ),
-        "h2": ParagraphStyle(
-            "PDFH2",
-            parent=base["Heading2"],
-            fontSize=12,
-            leading=15,
-            spaceBefore=8,
-            spaceAfter=6,
-        ),
-        "h3": ParagraphStyle(
-            "PDFH3",
-            parent=base["Heading3"],
-            fontSize=11,
-            leading=14,
-            spaceBefore=6,
-            spaceAfter=4,
-        ),
-        "body": body,
-        "quote": ParagraphStyle(
-            "PDFQuote",
-            parent=body,
-            leftIndent=14,
-            borderPadding=8,
-            backColor=colors.HexColor("#f8f8f8"),
-        ),
-        "list_item": ParagraphStyle(
-            "PDFList",
-            parent=body,
-        ),
-        "code_block": ParagraphStyle(
-            "PDFCode",
-            parent=base["Code"],
-            fontName="Courier",
-            fontSize=8,
-            leading=10,
-        ),
-        "table_cell": ParagraphStyle(
-            "PDFTableCell",
-            parent=body,
-            fontSize=8,
-            leading=10,
-        ),
-        "question": ParagraphStyle(
-            "PDFQuestion",
-            parent=body,
-            fontSize=9,
-            leading=12,
-        ),
-        "log": ParagraphStyle(
-            "PDFLog",
-            parent=base["Code"],
-            fontName="Courier",
-            fontSize=7,
-            leading=8,
-        ),
-    }
+_PRINT_CSS = """
+/* Letter size; non-zero @page margin so Chromium does not paint content flush to the sheet edge. */
+@page {
+  size: letter;
+  margin: 0.75in;
+}
+html {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  font-size: 11px;
+  line-height: 1.5;
+  color: #1a1a1a;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+body {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+h1 {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0 0 8px 0;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #e0e0e0;
+}
+.meta {
+  font-size: 10px;
+  color: #666;
+  margin: 0 0 16px 0;
+}
+h2.section {
+  font-size: 11px;
+  font-weight: 600;
+  margin: 18px 0 8px 0;
+  color: #222;
+}
+.question-block {
+  font-size: 10px;
+  line-height: 1.45;
+  margin: 0 0 16px 0;
+  padding: 10px 12px;
+  background: #f6f7f9;
+  border-radius: 6px;
+  border: 1px solid #e8e8e8;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+.output-block {
+  margin: 0;
+  font-size: 11px;
+}
+.output-block h1 { font-size: 16px; border: none; padding: 0; }
+.output-block h2 { font-size: 14px; margin-top: 14px; }
+.output-block h3 { font-size: 13px; margin-top: 12px; }
+.output-block h4, .output-block h5, .output-block h6 { font-size: 12px; margin-top: 10px; }
+.output-block p { margin: 6px 0; }
+.output-block ul, .output-block ol {
+  margin: 6px 0 10px 0;
+  padding-left: 22px;
+}
+.output-block li { margin: 4px 0; }
+.output-block li > p { margin: 0.2em 0; }
+.output-block pre {
+  font-family: ui-monospace, "Cascadia Code", "SF Mono", Menlo, Consolas, monospace;
+  font-size: 10px;
+  line-height: 1.35;
+  background: #f4f4f5;
+  border: 1px solid #e5e5e7;
+  border-radius: 4px;
+  padding: 10px 12px;
+  margin: 8px 0;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+.output-block code {
+  font-family: ui-monospace, "Cascadia Code", "SF Mono", Menlo, Consolas, monospace;
+  font-size: 10px;
+  background: #f0f0f2;
+  padding: 2px 5px;
+  border-radius: 3px;
+}
+.output-block pre code {
+  background: transparent;
+  padding: 0;
+  border: none;
+}
+.output-block blockquote {
+  margin: 8px 0;
+  padding-left: 12px;
+  border-left: 3px solid #d0d0d4;
+  color: #444;
+}
+.output-block table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 8px 0;
+  font-size: 10px;
+}
+.output-block th, .output-block td {
+  border: 1px solid #ddd;
+  padding: 6px 8px;
+  text-align: left;
+  vertical-align: top;
+}
+.output-block th {
+  background: #f0f0f2;
+  font-weight: 600;
+}
+.output-block a {
+  color: #0b57d0;
+  text-decoration: none;
+}
+.output-block hr {
+  border: none;
+  border-top: 1px solid #ccc;
+  margin: 12px 0;
+}
+"""
 
 
 def _truncate(s: str, limit: int) -> str:
@@ -280,44 +144,122 @@ def _truncate(s: str, limit: int) -> str:
     return s[: limit - 25] + "\n… [truncated] …"
 
 
+def _markdown_to_html(md: str) -> str:
+    import markdown
+
+    return markdown.markdown(md or "", extensions=_MD_EXTENSIONS)
+
+
+def _strip_colon_only_paragraphs(html: str) -> str:
+    """
+    Python-Markdown + sane_lists can emit <p>:</p> under list items (definition-style).
+    Remove those so the PDF does not show a lone colon line.
+    """
+    wrapped = f'<div class="md-sanitize-root">{html}</div>'
+    soup = BeautifulSoup(wrapped, "html.parser")
+    root = soup.find("div", class_="md-sanitize-root")
+    if root is None:
+        return html
+    for p in list(root.find_all("p")):
+        if p.get_text(strip=True) == ":":
+            p.decompose()
+    return root.decode_contents()
+
+
+def _question_to_safe_html(query: str) -> str:
+    """Plain-text question: escape and preserve line breaks."""
+    t = _truncate(query, 20000)
+    return escape(t).replace("\n", "<br/>\n")
+
+
+def _build_html_document(
+    *,
+    title: str,
+    meta_ts: str,
+    question_html: str,
+    body_html: str,
+) -> str:
+    safe_title = escape(title)
+    safe_meta = escape(meta_ts)
+    return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>{safe_title}</title>
+<style>
+{_PRINT_CSS}
+</style>
+</head>
+<body>
+<h1>{safe_title}</h1>
+<p class="meta"><em>Generated {safe_meta}</em></p>
+<h2 class="section">Your question</h2>
+<div class="question-block">{question_html}</div>
+<h2 class="section">Agent output</h2>
+<div class="output-block">
+{body_html}
+</div>
+</body>
+</html>
+"""
+
+
 def build_run_pdf_bytes(
     *,
     title: str,
     query: str,
     output_text: str,
-    log_text: str,
 ) -> bytes:
-    """Build a PDF with rendered Markdown for agent output and monospace log."""
-    from reportlab.lib import pagesizes
+    """
+    Build a PDF with rendered Markdown for the agent answer only (no activity log).
 
-    styles = _build_styles()
-    buf = BytesIO()
-    doc = SimpleDocTemplate(
-        buf,
-        pagesize=pagesizes.letter,
-        rightMargin=54,
-        leftMargin=54,
-        topMargin=54,
-        bottomMargin=54,
-    )
-    story: list[Any] = []
-    story.append(Paragraph(escape(title), styles["title"]))
-    ts = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
-    story.append(Paragraph(f"<i>Generated {escape(ts)}</i>", styles["meta"]))
+    Uses Playwright + Chromium ``page.pdf()`` (same engine as Chrome print-to-PDF).
+    One-time setup: ``uv run playwright install chromium``
+    """
+    try:
+        from playwright.sync_api import sync_playwright
+    except ImportError as e:
+        raise RuntimeError(
+            "PDF export requires the 'playwright' package. Run: uv sync"
+        ) from e
 
-    story.append(Paragraph("<b>Your question</b>", styles["h_section"]))
-    q_lines = escape(_truncate(query, 20000)).replace("\n", "<br/>")
-    story.append(Paragraph(q_lines, styles["question"]))
-    story.append(Spacer(1, 0.12 * inch))
-
-    story.append(Paragraph("<b>Agent output</b>", styles["h_section"]))
     md_src = _truncate(output_text or "", 50000)
-    html_out = _markdown_to_html(md_src)
-    story.extend(_html_to_story(html_out, styles))
+    raw_html = _markdown_to_html(md_src)
+    body_html = _strip_colon_only_paragraphs(raw_html)
+    question_html = _question_to_safe_html(query)
+    ts = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    html_doc = _build_html_document(
+        title=title,
+        meta_ts=ts,
+        question_html=question_html,
+        body_html=body_html,
+    )
 
-    story.append(Spacer(1, 0.1 * inch))
-    story.append(Paragraph("<b>Run log (tools &amp; LLM)</b>", styles["h_section"]))
-    story.append(Preformatted(_truncate(log_text or "", 120000), styles["log"], maxLineLength=120))
+    try:
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=True)
+            try:
+                page = browser.new_page()
+                page.set_content(html_doc, wait_until="load")
+                # Use CSS @page margins (see _PRINT_CSS). API margins + @page margin:0 previously
+                # produced edge-to-edge content in headless Chromium; prefer_css_page_size honors @page.
+                pdf_bytes = page.pdf(
+                    margin={"top": "0", "right": "0", "bottom": "0", "left": "0"},
+                    print_background=True,
+                    prefer_css_page_size=True,
+                )
+            finally:
+                browser.close()
+    except Exception as e:
+        err = str(e).lower()
+        if "executable doesn't exist" in err or "browserType.launch" in err or "chromium" in err:
+            raise RuntimeError(
+                "Chromium is not installed for Playwright. Run:\n"
+                "  cd actuarial_agents_suite && uv run playwright install chromium\n"
+                "See README.md (PDF export)."
+            ) from e
+        raise RuntimeError(
+            f"PDF export failed (Chromium print). {e!s}"
+        ) from e
 
-    doc.build(story)
-    return buf.getvalue()
+    return pdf_bytes if isinstance(pdf_bytes, (bytes, bytearray)) else bytes(pdf_bytes)

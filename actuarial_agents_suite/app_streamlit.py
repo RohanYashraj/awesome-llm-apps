@@ -139,7 +139,7 @@ with tab_reserving:
     if up is not None and _require_key():
         temp_path, columns, df = preprocess_and_save(up)
         if temp_path and df is not None:
-            st.dataframe(df, use_container_width=True)
+            st.dataframe(df, width="stretch")
             duck = DuckDbTools()
             duck.load_local_csv_to_table(path=temp_path, table="uploaded_data")
             extra = ["actuarial-reserving-pc"] if skill_exists("actuarial-reserving-pc") else None
@@ -163,7 +163,7 @@ with tab_pricing:
         if up is not None:
             temp_path, _, df = preprocess_and_save(up)
             if temp_path and df is not None:
-                st.dataframe(df.head(50), use_container_width=True)
+                st.dataframe(df.head(50), width="stretch")
                 duck = DuckDbTools()
                 duck.load_local_csv_to_table(path=temp_path, table="uploaded_data")
         else:
@@ -181,7 +181,7 @@ with tab_experience:
     if up is not None and _require_key():
         temp_path, _, df = preprocess_and_save(up)
         if temp_path and df is not None:
-            st.dataframe(df, use_container_width=True)
+            st.dataframe(df, width="stretch")
             duck = DuckDbTools()
             duck.load_local_csv_to_table(path=temp_path, table="uploaded_data")
             agent = create_experience_study_agent(st.session_state["gemini_api_key"], duck)
@@ -214,7 +214,7 @@ with tab_pension:
         if up is not None:
             temp_path, _, df = preprocess_and_save(up)
             if temp_path and df is not None:
-                st.dataframe(df.head(100), use_container_width=True)
+                st.dataframe(df.head(100), width="stretch")
                 duck = DuckDbTools()
                 duck.load_local_csv_to_table(path=temp_path, table="uploaded_data")
                 agent = create_pension_agent(st.session_state["gemini_api_key"], duck)
@@ -257,15 +257,14 @@ with st.sidebar:
                 title=f"Actuarial Agents Suite — {last.get('tab_label', 'Run')}",
                 query=last.get("query", ""),
                 output_text=last.get("output", ""),
-                log_text=last.get("logs", ""),
             )
             st.download_button(
-                label="Download PDF (answer + activity log)",
+                label="Download PDF",
                 data=pdf_bytes,
                 file_name=f"actuarial_agent_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.pdf",
                 mime="application/pdf",
                 key="dl_pdf_last_run",
-                help="Contains your question, the agent answer, and the full tool/LLM activity log.",
+                help="Contains your question and the agent answer (Markdown formatted). Activity log stays in the app only.",
             )
         except Exception as ex:
             st.caption(f"PDF build failed: {ex}")

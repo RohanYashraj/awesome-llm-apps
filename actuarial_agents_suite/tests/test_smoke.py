@@ -10,6 +10,25 @@ if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
 
+def _playwright_chromium_available() -> bool:
+    """PDF uses Playwright + Chromium; skip if browser not installed."""
+    try:
+        from playwright.sync_api import sync_playwright
+
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=True)
+            browser.close()
+        return True
+    except Exception:
+        return False
+
+
+requires_playwright_pdf = pytest.mark.skipif(
+    not _playwright_chromium_available(),
+    reason="Run: uv run playwright install chromium (see README PDF export)",
+)
+
+
 def test_skills_root_is_bundled():
     from pathlib import Path
 
@@ -61,6 +80,7 @@ def test_regulatory_web_search_tools_config():
     assert t.timeout >= 5
 
 
+@requires_playwright_pdf
 def test_build_run_pdf_bytes_non_empty():
     from agent_run_ui import build_run_pdf_bytes
 
@@ -68,11 +88,28 @@ def test_build_run_pdf_bytes_non_empty():
         title="Test tab",
         query="What is IBNR?",
         output_text="**Draft** answer.",
-        log_text="[tool] run_query ▶ args:\n{}",
     )
     assert isinstance(pdf, bytes)
     assert pdf.startswith(b"%PDF")
     assert len(pdf) > 200
+    assert b"[tool]" not in pdf
+    assert b"Run log" not in pdf
+
+
+@requires_playwright_pdf
+def test_pdf_export_markdown_list_builds():
+    """List-heavy Markdown (including definition-style colons) should produce a valid PDF."""
+    from agent_run_ui import build_run_pdf_bytes
+
+    md = """- **Personal Auto**
+
+    :
+
+    High Credibility. Text here.
+"""
+    pdf = build_run_pdf_bytes(title="Tab", query="q", output_text=md)
+    assert pdf.startswith(b"%PDF")
+    assert len(pdf) > 500
 
 
 _DEMO_FIXTURES = (

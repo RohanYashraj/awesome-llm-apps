@@ -15,7 +15,8 @@ Self-contained practitioner **decision support** agents using [Agno](https://git
 | **3. API key** | Get a **Google AI API key** from [Google AI Studio](https://aistudio.google.com/apikey). Paste in the Streamlit sidebar (session only) or set `GOOGLE_API_KEY` if your tooling reads it. |
 | **4. Model ID** | Default LLM is **`gemini-3.1-pro-preview`** in [`config.py`](config.py). Update `MODEL_PRIMARY` / `MODEL_FAST` if Google renames models. |
 | **5. Regulatory research tab** | Uses **`ddgs`** (metasearch, backend `auto`). Optional env: `DDGS_TIMEOUT` (seconds, default 25), `DDGS_PROXY` / `HTTPS_PROXY`, `DDGS_VERIFY_SSL=false` only if corporate SSL inspection breaks HTTPS. |
-| **6. Privacy** | Do **not** upload PHI, identifiable policyholder data, or confidential company figures. Prefer [`fixtures/sample_loss_triangle.csv`](fixtures/sample_loss_triangle.csv) for demos. |
+| **6. PDF export** | Uses **[Playwright](https://playwright.dev/python/)** + **headless Chromium** (Chrome’s print-to-PDF). After `uv sync`, run **`uv run playwright install chromium`** once. See [PDF export](#pdf-export-playwright) below. |
+| **7. Privacy** | Do **not** upload PHI, identifiable policyholder data, or confidential company figures. Prefer [`fixtures/sample_loss_triangle.csv`](fixtures/sample_loss_triangle.csv) for demos. |
 
 ---
 
@@ -26,7 +27,10 @@ Install [uv](https://docs.astral.sh/uv/getting-started/installation/) if needed,
 ```bash
 cd actuarial_agents_suite
 uv sync
+uv run playwright install chromium
 ```
+
+The last line downloads the Chromium build used for **PDF export** (one-time per machine).
 
 Include dev tools (e.g. pytest):
 
@@ -57,7 +61,22 @@ Open the URL Streamlit prints (usually `http://localhost:8501`).
 ### Activity log and PDF export
 
 - Each **Run** opens an **Activity log** expander that updates **live** while the agent works. It shows **tool calls** (e.g. DuckDB / pandas) with arguments and results, plus **LLM request** start/completion (including token counts when the provider supplies them).
-- After at least one run, use **Download PDF (answer + activity log)** at the **bottom of the sidebar** (scroll down; it appears there after your run completes). The PDF renders **Markdown** in the agent answer (headings, bold, lists, tables, fenced code); the activity log stays monospace.
+- After at least one run, use **Download PDF (answer only)** at the **bottom of the sidebar** (scroll down; it appears there after your run completes). The PDF contains your **question** and the **agent answer** with Markdown rendered via CSS (headings, lists, tables, code). **Activity log is not included** in the PDF (it remains in the app only).
+
+### PDF export (Playwright Chromium)
+
+PDFs use the same **browser print pipeline** as Chrome (“Save as PDF” / print): Markdown → HTML + CSS → **headless Chromium** via [Playwright](https://playwright.dev/python/docs/api/class-page#page-pdf) `page.pdf()`. This matches how many production apps export rich HTML to PDF.
+
+**One-time browser install** (after `uv sync`):
+
+```bash
+cd actuarial_agents_suite
+uv run playwright install chromium
+```
+
+On Linux CI or minimal images you may need `uv run playwright install-deps chromium` (see [Playwright docs](https://playwright.dev/python/docs/intro#system-requirements)).
+
+Smoke tests that generate a real PDF are **skipped** if Chromium is not installed (`pytest` reports them as skipped). Run `playwright install chromium` to enable them.
 
 ---
 
@@ -89,7 +108,7 @@ uv run pytest tests/test_smoke.py -q
 | [`skills_loader.py`](skills_loader.py) | Loads `skills/<name>/SKILL.md` |
 | [`data_utils.py`](data_utils.py) | CSV/XLSX preprocessing for DuckDB |
 | [`agent_run_ui.py`](agent_run_ui.py) | Streamed Agno run events → log text; re-exports PDF helper |
-| [`pdf_export.py`](pdf_export.py) | Markdown → ReportLab PDF (formatted answer + monospace log) |
+| [`pdf_export.py`](pdf_export.py) | Markdown → HTML → Playwright/Chromium PDF (question + answer only; no activity log) |
 | [`agents/`](agents/) | Agent factories per workstream |
 | [`app_streamlit.py`](app_streamlit.py) | Streamlit UI |
 | [`fixtures/`](fixtures/) | Synthetic demo CSV/Markdown per tab; see [`fixtures/README.md`](fixtures/README.md) |
@@ -110,6 +129,7 @@ uv run pytest tests/test_smoke.py -q
 - **Gemini / model errors** — Check `MODEL_PRIMARY` in `config.py` against [AI Studio](https://aistudio.google.com/).
 - **Excel upload fails** — `openpyxl` is included via `uv sync`.
 - **Regulatory research / web search errors** — The app uses **`ddgs`** with backend **`auto`** (not a single site). If searches fail, set `DDGS_PROXY` or `HTTPS_PROXY` if needed; temporarily try `DDGS_VERIFY_SSL=false` only when you understand the risk; increase `DDGS_TIMEOUT`. Hard failures return JSON with `search_failed` so the agent can still respond with caveats.
+- **PDF build failed / Chromium / Playwright** — Run **`uv run playwright install chromium`** from `actuarial_agents_suite` (see [PDF export (Playwright Chromium)](#pdf-export-playwright)). The sidebar surfaces a short hint if the browser is missing.
 
 ---
 
