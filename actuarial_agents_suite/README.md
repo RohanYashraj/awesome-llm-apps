@@ -54,6 +54,11 @@ streamlit run app_streamlit.py
 
 Open the URL Streamlit prints (usually `http://localhost:8501`).
 
+### Activity log and PDF export
+
+- Each **Run** opens an **Activity log** expander that updates **live** while the agent works. It shows **tool calls** (e.g. DuckDB / pandas) with arguments and results, plus **LLM request** start/completion (including token counts when the provider supplies them).
+- After at least one run, use **Download PDF (answer + activity log)** at the **bottom of the sidebar** (scroll down; it appears there after your run completes).
+
 ---
 
 ## Verify install (no API call)
@@ -83,6 +88,7 @@ uv run pytest tests/test_smoke.py -q
 | [`skills/`](skills/) | Bundled Agent Skills (actuarial + supporting); see [`skills/README.md`](skills/README.md) |
 | [`skills_loader.py`](skills_loader.py) | Loads `skills/<name>/SKILL.md` |
 | [`data_utils.py`](data_utils.py) | CSV/XLSX preprocessing for DuckDB |
+| [`agent_run_ui.py`](agent_run_ui.py) | Streamed Agno run events → log text; PDF export |
 | [`agents/`](agents/) | Agent factories per workstream |
 | [`app_streamlit.py`](app_streamlit.py) | Streamlit UI |
 | [`fixtures/`](fixtures/) | Sample non-sensitive data |

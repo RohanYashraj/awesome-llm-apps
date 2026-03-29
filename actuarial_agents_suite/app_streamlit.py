@@ -24,6 +24,7 @@ from agents.validation_agent import create_validation_agent
 from agents.pension_agent import create_pension_agent
 from agents.ifrs_agent import create_ifrs_reporting_agent
 from agents.research_agent import create_regulatory_research_agent
+from agent_run_ui import build_run_pdf_bytes, run_agent_stream
 from data_utils import preprocess_and_save
 from skills_loader import skill_exists
 
@@ -44,17 +45,39 @@ def _require_key() -> bool:
     return True
 
 
-def _run_turn(agent, query: str) -> None:
+def _run_turn(agent, query: str, *, tab_label: str) -> None:
     if not query.strip():
         st.warning("Enter a question.")
         return
-    with st.spinner("Calling Gemini…"):
+    with st.expander("Activity log (tools & LLM requests)", expanded=True):
+        log_area = st.empty()
+
+    def _refresh_log(text: str) -> None:
+        log_area.code(text, language="text")
+
+    st.subheader("Answer")
+    out_area = st.empty()
+
+    with st.spinner("Running agent…"):
         try:
-            response = agent.run(query)
-            content = response.content if hasattr(response, "content") else str(response)
-            st.markdown(content)
+            log_text, content, _ = run_agent_stream(agent, query, log_callback=_refresh_log)
+            _refresh_log(log_text)
+            out_area.markdown(content or "_No text response._")
+            st.session_state["last_agent_run"] = {
+                "tab_label": tab_label,
+                "query": query,
+                "logs": log_text,
+                "output": content or "",
+            }
         except Exception as e:
             st.error(f"Agent error: {e}")
+            _refresh_log(f"[error] {e!s}")
+            st.session_state["last_agent_run"] = {
+                "tab_label": tab_label,
+                "query": query,
+                "logs": f"[error] {e!s}",
+                "output": "",
+            }
 
 
 # --- Sidebar ---
@@ -124,7 +147,7 @@ with tab_reserving:
             )
             q = st.text_area("Question", key="q_res", height=100)
             if st.button("Run", key="b_res"):
-                _run_turn(agent, q)
+                _run_turn(agent, q, tab_label="P&C Reserving")
     elif up is None:
         st.info("Try `fixtures/sample_loss_triangle.csv`.")
 
@@ -146,7 +169,7 @@ with tab_pricing:
         agent = create_pricing_agent(st.session_state["gemini_api_key"], duck)
         q = st.text_area("Question", key="q_pr", height=100)
         if st.button("Run", key="b_pr"):
-            _run_turn(agent, q)
+            _run_turn(agent, q, tab_label="Pricing & rate")
 
 # ---- Experience study ----
 with tab_experience:
@@ -161,7 +184,7 @@ with tab_experience:
             agent = create_experience_study_agent(st.session_state["gemini_api_key"], duck)
             q = st.text_area("Question", key="q_ex", height=100)
             if st.button("Run", key="b_ex"):
-                _run_turn(agent, q)
+                _run_turn(agent, q, tab_label="Experience study")
     elif up is None:
         st.info("Upload experience data to enable SQL/pandas tools.")
 
@@ -175,7 +198,7 @@ with tab_validation:
         q = st.text_area("What should the reviewer focus on?", key="q_val", height=80)
         if st.button("Run", key="b_val"):
             combined = (context.strip() + "\n\n---\n\n" + q.strip()).strip()
-            _run_turn(agent, combined)
+            _run_turn(agent, combined, tab_label="Model validation")
 
 # ---- Pension ----
 with tab_pension:
@@ -193,7 +216,7 @@ with tab_pension:
             agent = create_pension_agent(st.session_state["gemini_api_key"], None)
         q = st.text_area("Question", key="q_pe", height=100)
         if st.button("Run", key="b_pe"):
-            _run_turn(agent, q)
+            _run_turn(agent, q, tab_label="Pension / benefits")
 
 # ---- IFRS & risk ----
 with tab_ifrs:
@@ -203,7 +226,7 @@ with tab_ifrs:
         agent = create_ifrs_reporting_agent(st.session_state["gemini_api_key"])
         q = st.text_area("Question", key="q_if", height=120)
         if st.button("Run", key="b_if"):
-            _run_turn(agent, q)
+            _run_turn(agent, q, tab_label="IFRS & risk narrative")
 
 # ---- Regulatory research ----
 with tab_research:
@@ -213,4 +236,30 @@ with tab_research:
         agent = create_regulatory_research_agent(st.session_state["gemini_api_key"])
         q = st.text_area("Research question", key="q_rr", height=120)
         if st.button("Run", key="b_rr"):
-            _run_turn(agent, q)
+            _run_turn(agent, q, tab_label="Regulatory research")
+
+# --- Sidebar: export (must run after tabs / _run_turn so session_state is current on the same run) ---
+with st.sidebar:
+    st.divider()
+    st.subheader("Export last run")
+    last = st.session_state.get("last_agent_run")
+    if last:
+        try:
+            pdf_bytes = build_run_pdf_bytes(
+                title=f"Actuarial Agents Suite — {last.get('tab_label', 'Run')}",
+                query=last.get("query", ""),
+                output_text=last.get("output", ""),
+                log_text=last.get("logs", ""),
+            )
+            st.download_button(
+                label="Download PDF (answer + activity log)",
+                data=pdf_bytes,
+                file_name="actuarial_agent_run.pdf",
+                mime="application/pdf",
+                key="dl_pdf_last_run",
+                help="Contains your question, the agent answer, and the full tool/LLM activity log.",
+            )
+        except Exception as ex:
+            st.caption(f"PDF build failed: {ex}")
+    else:
+        st.caption("Run an agent once to enable PDF download.")

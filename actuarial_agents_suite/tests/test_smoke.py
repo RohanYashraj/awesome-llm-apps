@@ -51,3 +51,32 @@ def test_all_agent_factories_import():
     assert callable(create_pension_agent)
     assert callable(create_ifrs_reporting_agent)
     assert callable(create_regulatory_research_agent)
+
+
+def test_build_run_pdf_bytes_non_empty():
+    from agent_run_ui import build_run_pdf_bytes
+
+    pdf = build_run_pdf_bytes(
+        title="Test tab",
+        query="What is IBNR?",
+        output_text="**Draft** answer.",
+        log_text="[tool] run_query ▶ args:\n{}",
+    )
+    assert isinstance(pdf, bytes)
+    assert pdf.startswith(b"%PDF")
+    assert len(pdf) > 200
+
+
+def test_format_stream_event_tool_started():
+    from agno.models.response import ToolExecution
+    from agno.run.agent import ToolCallStartedEvent
+
+    from agent_run_ui import format_stream_event
+
+    ev = ToolCallStartedEvent(
+        tool=ToolExecution(tool_name="run_sql", tool_args={"query": "SELECT 1"}),
+    )
+    line = format_stream_event(ev)
+    assert line is not None
+    assert "run_sql" in line
+    assert "SELECT 1" in line
