@@ -14,7 +14,7 @@ Self-contained practitioner **decision support** agents using [Agno](https://git
 | **2. Dependencies** | Use **[uv](https://docs.astral.sh/uv/)** only (`uv sync`). Do not rely on a sibling `awesome_agent_skills` checkout—skills live in [`skills/`](skills/). |
 | **3. API key** | Get a **Google AI API key** from [Google AI Studio](https://aistudio.google.com/apikey). Paste in the Streamlit sidebar (session only) or set `GOOGLE_API_KEY` if your tooling reads it. |
 | **4. Model ID** | Default LLM is **`gemini-3.1-pro-preview`** in [`config.py`](config.py). Update `MODEL_PRIMARY` / `MODEL_FAST` if Google renames models. |
-| **5. Regulatory research tab** | Requires the **`ddgs`** package (declared in `pyproject.toml`) for DuckDuckGo search via Agno. |
+| **5. Regulatory research tab** | Uses **`ddgs`** (metasearch, backend `auto`). Optional env: `DDGS_TIMEOUT` (seconds, default 25), `DDGS_PROXY` / `HTTPS_PROXY`, `DDGS_VERIFY_SSL=false` only if corporate SSL inspection breaks HTTPS. |
 | **6. Privacy** | Do **not** upload PHI, identifiable policyholder data, or confidential company figures. Prefer [`fixtures/sample_loss_triangle.csv`](fixtures/sample_loss_triangle.csv) for demos. |
 
 ---
@@ -92,7 +92,7 @@ uv run pytest tests/test_smoke.py -q
 | [`pdf_export.py`](pdf_export.py) | Markdown → ReportLab PDF (formatted answer + monospace log) |
 | [`agents/`](agents/) | Agent factories per workstream |
 | [`app_streamlit.py`](app_streamlit.py) | Streamlit UI |
-| [`fixtures/`](fixtures/) | Sample non-sensitive data |
+| [`fixtures/`](fixtures/) | Synthetic demo CSV/Markdown per tab; see [`fixtures/README.md`](fixtures/README.md) |
 | [`pyproject.toml`](pyproject.toml) / [`uv.lock`](uv.lock) | Dependencies (uv) |
 
 ---
@@ -109,6 +109,7 @@ uv run pytest tests/test_smoke.py -q
 - **`FileNotFoundError` for a skill** — Confirm `skills/<skill-name>/SKILL.md` exists; reinstall from a clean clone if files are missing.
 - **Gemini / model errors** — Check `MODEL_PRIMARY` in `config.py` against [AI Studio](https://aistudio.google.com/).
 - **Excel upload fails** — `openpyxl` is included via `uv sync`.
+- **Regulatory research / web search errors** — The app uses **`ddgs`** with backend **`auto`** (not a single site). If searches fail, set `DDGS_PROXY` or `HTTPS_PROXY` if needed; temporarily try `DDGS_VERIFY_SSL=false` only when you understand the risk; increase `DDGS_TIMEOUT`. Hard failures return JSON with `search_failed` so the agent can still respond with caveats.
 
 ---
 

@@ -53,6 +53,14 @@ def test_all_agent_factories_import():
     assert callable(create_regulatory_research_agent)
 
 
+def test_regulatory_web_search_tools_config():
+    from agents.research_agent import RegulatoryWebSearchTools
+
+    t = RegulatoryWebSearchTools()
+    assert t.backend == "auto"
+    assert t.timeout >= 5
+
+
 def test_build_run_pdf_bytes_non_empty():
     from agent_run_ui import build_run_pdf_bytes
 
@@ -65,6 +73,26 @@ def test_build_run_pdf_bytes_non_empty():
     assert isinstance(pdf, bytes)
     assert pdf.startswith(b"%PDF")
     assert len(pdf) > 200
+
+
+_DEMO_FIXTURES = (
+    "sample_loss_triangle.csv",
+    "sample_pricing_rating.csv",
+    "sample_experience_study.csv",
+    "sample_pension_plan.csv",
+    "sample_model_validation_context.md",
+    "sample_ifrs_questions.md",
+    "sample_research_questions.txt",
+)
+
+
+def test_demo_fixtures_exist():
+    fixtures_dir = _ROOT / "fixtures"
+    assert (fixtures_dir / "README.md").is_file()
+    for name in _DEMO_FIXTURES:
+        path = fixtures_dir / name
+        assert path.is_file(), f"Missing fixture: {path}"
+        assert path.stat().st_size > 20
 
 
 def test_format_stream_event_tool_started():

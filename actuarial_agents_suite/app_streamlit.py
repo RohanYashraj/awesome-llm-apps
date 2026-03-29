@@ -8,6 +8,7 @@ Run from this directory:
 from __future__ import annotations
 
 import sys
+from datetime import datetime
 from pathlib import Path
 
 _APP_DIR = Path(__file__).resolve().parent
@@ -149,7 +150,8 @@ with tab_reserving:
             if st.button("Run", key="b_res"):
                 _run_turn(agent, q, tab_label="P&C Reserving")
     elif up is None:
-        st.info("Try `fixtures/sample_loss_triangle.csv`.")
+        st.info("Upload a triangle or claims/policy extract to enable SQL/pandas tools.")
+        st.caption("Demo data: `fixtures/sample_loss_triangle.csv`.")
 
 # ---- Pricing ----
 with tab_pricing:
@@ -166,6 +168,7 @@ with tab_pricing:
                 duck.load_local_csv_to_table(path=temp_path, table="uploaded_data")
         else:
             st.info("No file uploaded—the agent answers **conceptually** (no SQL on `uploaded_data`).")
+            st.caption("Demo upload: `fixtures/sample_pricing_rating.csv`.")
         agent = create_pricing_agent(st.session_state["gemini_api_key"], duck)
         q = st.text_area("Question", key="q_pr", height=100)
         if st.button("Run", key="b_pr"):
@@ -187,11 +190,13 @@ with tab_experience:
                 _run_turn(agent, q, tab_label="Experience study")
     elif up is None:
         st.info("Upload experience data to enable SQL/pandas tools.")
+        st.caption("Demo data: `fixtures/sample_experience_study.csv`.")
 
 # ---- Model validation ----
 with tab_validation:
     st.subheader("Model validation copilot")
     st.markdown("Paste **documentation excerpts**, **test plans**, or **code** below (no execution).")
+    st.caption("Example context: `fixtures/sample_model_validation_context.md` (copy/paste).")
     if _require_key():
         agent = create_validation_agent(st.session_state["gemini_api_key"])
         context = st.text_area("Context to review", key="v_ctx", height=180)
@@ -203,6 +208,7 @@ with tab_validation:
 # ---- Pension ----
 with tab_pension:
     st.subheader("Pension & benefits")
+    st.caption("Optional demo upload: `fixtures/sample_pension_plan.csv`.")
     up = st.file_uploader("Optional liability/member data", type=["csv", "xlsx"], key="u_pe")
     if _require_key():
         if up is not None:
@@ -222,6 +228,7 @@ with tab_pension:
 with tab_ifrs:
     st.subheader("IFRS 17 & risk / capital narrative")
     st.markdown("Conceptual help only—not accounting advice.")
+    st.caption("Example prompts: `fixtures/sample_ifrs_questions.md`.")
     if _require_key():
         agent = create_ifrs_reporting_agent(st.session_state["gemini_api_key"])
         q = st.text_area("Question", key="q_if", height=120)
@@ -231,7 +238,8 @@ with tab_ifrs:
 # ---- Regulatory research ----
 with tab_research:
     st.subheader("Regulatory & methodology research")
-    st.markdown("Uses **DuckDuckGo** search—verify citations before relying on them.")
+    st.markdown("Uses **ddgs** metasearch (multiple backends)—verify citations before relying on them.")
+    st.caption("Example questions: `fixtures/sample_research_questions.txt`.")
     if _require_key():
         agent = create_regulatory_research_agent(st.session_state["gemini_api_key"])
         q = st.text_area("Research question", key="q_rr", height=120)

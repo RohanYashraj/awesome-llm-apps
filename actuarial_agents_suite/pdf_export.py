@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from io import BytesIO
 from typing import Any
-from xml.sax.saxutils import escape
+from xml.sax.saxutils import escape, quoteattr
 
 from bs4 import BeautifulSoup, NavigableString, Tag
 from reportlab.lib import colors
@@ -14,7 +14,6 @@ from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import inch
 from reportlab.platypus import (
     HRFlowable,
-    KeepTogether,
     ListFlowable,
     ListItem,
     Paragraph,
@@ -56,7 +55,8 @@ def _node_to_para_markup(node: Any) -> str:
     if name == "a":
         href = node.get("href") or ""
         inner = "".join(_node_to_para_markup(c) for c in node.children)
-        return f'<a href="{escape(href, True)}" color="blue">{inner}</a>'
+        # quoteattr() produces a quoted, escaped value; escape(..., True) is invalid (2nd arg is entities dict).
+        return f"<a href={quoteattr(href)} color=\"blue\">{inner}</a>"
     if name in ("del", "s", "span", "mark", "sup", "sub"):
         return "".join(_node_to_para_markup(c) for c in node.children)
     return escape(node.get_text())
@@ -94,7 +94,9 @@ def _list_to_flowable(el: Tag, styles: dict[str, ParagraphStyle]) -> ListFlowabl
         elif len(inner) == 1:
             items.append(ListItem(inner[0]))
         else:
-            items.append(ListItem(KeepTogether(inner)))
+            # Do not use KeepTogether here: it injects FrameBreak flowables that break
+            # inside ListFlowable (_FrameBreak.wrap should never be called).
+            items.append(ListItem(inner))
     return ListFlowable(
         items,
         bulletType=bullet,
