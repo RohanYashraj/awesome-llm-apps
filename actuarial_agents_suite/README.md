@@ -12,7 +12,7 @@ Self-contained practitioner **decision support** agents using [Agno](https://git
 |------|--------|
 | **1. Python** | **3.11+** (`.python-version` pins **3.12** for [uv](https://docs.astral.sh/uv/); override if needed). |
 | **2. Dependencies** | Use **[uv](https://docs.astral.sh/uv/)** only (`uv sync`). Do not rely on a sibling `awesome_agent_skills` checkout—skills live in [`skills/`](skills/). |
-| **3. API key** | Get a **Google AI API key** from [Google AI Studio](https://aistudio.google.com/apikey). Paste in the Streamlit sidebar (session only) or set `GOOGLE_API_KEY` if your tooling reads it. |
+| **3. API key** | Get a **Google AI API key** from [Google AI Studio](https://aistudio.google.com/apikey). **Recommended:** copy [`.env.example`](.env.example) to **`.env`** in this folder and set **`GEMINI_API_KEY`** or **`GOOGLE_API_KEY`**. Optional: paste an override in the sidebar (session only). |
 | **4. Model ID** | Default LLM is **`gemini-3.1-pro-preview`** in [`config.py`](config.py). Update `MODEL_PRIMARY` / `MODEL_FAST` if Google renames models. |
 | **5. Regulatory research tab** | Uses **`ddgs`** (metasearch, backend `auto`). Optional env: `DDGS_TIMEOUT` (seconds, default 25), `DDGS_PROXY` / `HTTPS_PROXY`, `DDGS_VERIFY_SSL=false` only if corporate SSL inspection breaks HTTPS. |
 | **6. PDF export** | Uses **[Playwright](https://playwright.dev/python/)** + **headless Chromium** (Chrome’s print-to-PDF). After `uv sync`, run **`uv run playwright install chromium`** once. See [PDF export](#pdf-export-playwright) below. |
@@ -103,7 +103,8 @@ uv run pytest tests/test_smoke.py -q
 
 | Path | Purpose |
 |------|---------|
-| [`config.py`](config.py) | Model IDs and static reserving instructions |
+| [`config.py`](config.py) | Model IDs, static reserving instructions, `.env` loading (`load_app_env`, `get_gemini_api_key_from_env`) |
+| [`ui_branding.py`](ui_branding.py) | MaestrosAI-themed CSS and hero/header markup for Streamlit |
 | [`skills/`](skills/) | Bundled Agent Skills (actuarial + supporting); see [`skills/README.md`](skills/README.md) |
 | [`skills_loader.py`](skills_loader.py) | Loads `skills/<name>/SKILL.md` |
 | [`data_utils.py`](data_utils.py) | CSV/XLSX preprocessing for DuckDB |

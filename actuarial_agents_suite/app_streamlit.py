@@ -26,22 +26,37 @@ from agents.pension_agent import create_pension_agent
 from agents.ifrs_agent import create_ifrs_reporting_agent
 from agents.research_agent import create_regulatory_research_agent
 from agent_run_ui import build_run_pdf_bytes, run_agent_stream
+from config import get_gemini_api_key_from_env, load_app_env
 from data_utils import preprocess_and_save
 from skills_loader import skill_exists
+from ui_branding import inject_maestros_styles, render_maestros_shell
+
+load_app_env()
 
 st.set_page_config(
-    page_title="Actuarial Agents Suite",
+    page_title="MaestrosAI · Actuarial Agents",
     page_icon="📐",
     layout="wide",
+    initial_sidebar_state="expanded",
 )
 
-st.title("Actuarial Agents Suite")
-st.caption("Practitioner decision-support powered by Gemini (Agno). Not professional advice.")
+inject_maestros_styles()
+render_maestros_shell()
+
+_ENV_KEY = get_gemini_api_key_from_env()
+
+
+def _effective_gemini_key() -> str | None:
+    """Sidebar override wins; else env (.env)."""
+    manual = (st.session_state.get("sidebar_manual_api_key") or "").strip()
+    if manual:
+        return manual
+    return _ENV_KEY
 
 
 def _require_key() -> bool:
-    if "gemini_api_key" not in st.session_state:
-        st.warning("Add your Gemini API key in the sidebar.")
+    if not _effective_gemini_key():
+        st.warning("Add your Gemini API key in the sidebar or set GEMINI_API_KEY / GOOGLE_API_KEY in `.env`.")
         return False
     return True
 
@@ -83,17 +98,25 @@ def _run_turn(agent, query: str, *, tab_label: str) -> None:
 
 # --- Sidebar ---
 with st.sidebar:
-    st.header("Configuration")
-    gemini_api_key = st.text_input(
-        "Google AI (Gemini) API key",
-        type="password",
-        help="Create a key at https://aistudio.google.com/apikey",
+    st.markdown("### Configuration")
+    st.caption(
+        "Keys are read from **`.env`** (`GEMINI_API_KEY` or `GOOGLE_API_KEY`). "
+        "Paste below only to **override** for this session."
     )
-    if gemini_api_key:
-        st.session_state["gemini_api_key"] = gemini_api_key
-        st.success("API key stored for this session.")
+    st.text_input(
+        "Override API key (optional)",
+        type="password",
+        key="sidebar_manual_api_key",
+        placeholder="Leave empty to use .env",
+        help="Create a key at https://aistudio.google.com/apikey — or copy `.env.example` to `.env`.",
+    )
+    manual = (st.session_state.get("sidebar_manual_api_key") or "").strip()
+    if manual:
+        st.success("Using the override key from the field above (session only).")
+    elif _ENV_KEY:
+        st.success("Using API key from **environment** (`.env` or shell).")
     else:
-        st.warning("Enter your Gemini API key to use the agents.")
+        st.warning("Set `GEMINI_API_KEY` or `GOOGLE_API_KEY` in `.env`, or paste a key above.")
 
     st.divider()
     st.subheader("Privacy & compliance")
@@ -107,6 +130,9 @@ with st.sidebar:
     st.divider()
     st.caption("Primary model: `config.MODEL_PRIMARY` (default `gemini-3.1-pro-preview`).")
 
+
+st.markdown("##### Workstreams")
+st.caption("Choose a tab below. Upload data where prompted, then run your question.")
 
 # --- Tabs ---
 (
@@ -144,7 +170,7 @@ with tab_reserving:
             duck.load_local_csv_to_table(path=temp_path, table="uploaded_data")
             extra = ["actuarial-reserving-pc"] if skill_exists("actuarial-reserving-pc") else None
             agent = create_reserving_agent(
-                st.session_state["gemini_api_key"], duck, extra_skills=extra
+                _effective_gemini_key(), duck, extra_skills=extra
             )
             q = st.text_area("Question", key="q_res", height=100)
             if st.button("Run", key="b_res"):
@@ -169,7 +195,7 @@ with tab_pricing:
         else:
             st.info("No file uploaded—the agent answers **conceptually** (no SQL on `uploaded_data`).")
             st.caption("Demo upload: `fixtures/sample_pricing_rating.csv`.")
-        agent = create_pricing_agent(st.session_state["gemini_api_key"], duck)
+        agent = create_pricing_agent(_effective_gemini_key(), duck)
         q = st.text_area("Question", key="q_pr", height=100)
         if st.button("Run", key="b_pr"):
             _run_turn(agent, q, tab_label="Pricing & rate")
@@ -184,7 +210,7 @@ with tab_experience:
             st.dataframe(df, width="stretch")
             duck = DuckDbTools()
             duck.load_local_csv_to_table(path=temp_path, table="uploaded_data")
-            agent = create_experience_study_agent(st.session_state["gemini_api_key"], duck)
+            agent = create_experience_study_agent(_effective_gemini_key(), duck)
             q = st.text_area("Question", key="q_ex", height=100)
             if st.button("Run", key="b_ex"):
                 _run_turn(agent, q, tab_label="Experience study")
@@ -198,7 +224,7 @@ with tab_validation:
     st.markdown("Paste **documentation excerpts**, **test plans**, or **code** below (no execution).")
     st.caption("Example context: `fixtures/sample_model_validation_context.md` (copy/paste).")
     if _require_key():
-        agent = create_validation_agent(st.session_state["gemini_api_key"])
+        agent = create_validation_agent(_effective_gemini_key())
         context = st.text_area("Context to review", key="v_ctx", height=180)
         q = st.text_area("What should the reviewer focus on?", key="q_val", height=80)
         if st.button("Run", key="b_val"):
@@ -217,9 +243,9 @@ with tab_pension:
                 st.dataframe(df.head(100), width="stretch")
                 duck = DuckDbTools()
                 duck.load_local_csv_to_table(path=temp_path, table="uploaded_data")
-                agent = create_pension_agent(st.session_state["gemini_api_key"], duck)
+                agent = create_pension_agent(_effective_gemini_key(), duck)
         else:
-            agent = create_pension_agent(st.session_state["gemini_api_key"], None)
+            agent = create_pension_agent(_effective_gemini_key(), None)
         q = st.text_area("Question", key="q_pe", height=100)
         if st.button("Run", key="b_pe"):
             _run_turn(agent, q, tab_label="Pension / benefits")
@@ -230,7 +256,7 @@ with tab_ifrs:
     st.markdown("Conceptual help only—not accounting advice.")
     st.caption("Example prompts: `fixtures/sample_ifrs_questions.md`.")
     if _require_key():
-        agent = create_ifrs_reporting_agent(st.session_state["gemini_api_key"])
+        agent = create_ifrs_reporting_agent(_effective_gemini_key())
         q = st.text_area("Question", key="q_if", height=120)
         if st.button("Run", key="b_if"):
             _run_turn(agent, q, tab_label="IFRS & risk narrative")
@@ -241,7 +267,7 @@ with tab_research:
     st.markdown("Uses **ddgs** metasearch (multiple backends)—verify citations before relying on them.")
     st.caption("Example questions: `fixtures/sample_research_questions.txt`.")
     if _require_key():
-        agent = create_regulatory_research_agent(st.session_state["gemini_api_key"])
+        agent = create_regulatory_research_agent(_effective_gemini_key())
         q = st.text_area("Research question", key="q_rr", height=120)
         if st.button("Run", key="b_rr"):
             _run_turn(agent, q, tab_label="Regulatory research")
@@ -254,7 +280,7 @@ with st.sidebar:
     if last:
         try:
             pdf_bytes = build_run_pdf_bytes(
-                title=f"Actuarial Agents Suite — {last.get('tab_label', 'Run')}",
+                title=f"MaestrosAI — {last.get('tab_label', 'Run')}",
                 query=last.get("query", ""),
                 output_text=last.get("output", ""),
             )

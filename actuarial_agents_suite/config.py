@@ -3,6 +3,32 @@
 Change `MODEL_PRIMARY` here if Google renames preview models in AI Studio.
 """
 
+from __future__ import annotations
+
+import os
+from pathlib import Path
+
+_APP_DIR = Path(__file__).resolve().parent
+
+
+def load_app_env() -> None:
+    """Load `.env` from the actuarial_agents_suite directory (optional)."""
+    try:
+        from dotenv import load_dotenv
+    except ImportError:
+        return
+    load_dotenv(_APP_DIR / ".env", override=False)
+
+
+def get_gemini_api_key_from_env() -> str | None:
+    """First non-empty value among common env var names (Google AI / Gemini)."""
+    for name in ("GEMINI_API_KEY", "GOOGLE_API_KEY", "GOOGLE_AI_API_KEY"):
+        v = os.environ.get(name, "").strip()
+        if v:
+            return v
+    return None
+
+
 # Gemini model IDs (see https://aistudio.google.com/ for current names)
 MODEL_PRIMARY = "gemini-3.1-pro-preview"
 MODEL_FAST = "gemini-3-flash-preview"
