@@ -254,7 +254,7 @@ with st.sidebar:
             st.download_button(
                 label="Download PDF (answer + activity log)",
                 data=pdf_bytes,
-                file_name="actuarial_agent_run.pdf",
+                file_name=f"actuarial_agent_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.pdf",
                 mime="application/pdf",
                 key="dl_pdf_last_run",
                 help="Contains your question, the agent answer, and the full tool/LLM activity log.",

@@ -5,9 +5,10 @@ from __future__ import annotations
 import json
 from collections.abc import Callable
 from datetime import datetime, timezone
-from io import BytesIO
 from typing import Any
 from xml.sax.saxutils import escape
+
+from pdf_export import build_run_pdf_bytes
 
 from agno.run.agent import (
     ModelRequestCompletedEvent,
@@ -124,63 +125,3 @@ def run_agent_stream(
         c = final.content
         content = c if isinstance(c, str) else (str(c) if c is not None else "")
     return "\n\n".join(log_lines), content, final
-
-
-def build_run_pdf_bytes(
-    *,
-    title: str,
-    query: str,
-    output_text: str,
-    log_text: str,
-) -> bytes:
-    """Build a PDF with title, question, agent output, and run log."""
-    from reportlab.lib import pagesizes
-    from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
-    from reportlab.lib.units import inch
-    from reportlab.platypus import Paragraph, Preformatted, SimpleDocTemplate, Spacer
-
-    buf = BytesIO()
-    doc = SimpleDocTemplate(
-        buf,
-        pagesize=pagesizes.letter,
-        rightMargin=54,
-        leftMargin=54,
-        topMargin=54,
-        bottomMargin=54,
-    )
-    styles = getSampleStyleSheet()
-    body = ParagraphStyle(
-        "BodySmall",
-        parent=styles["Normal"],
-        fontSize=9,
-        leading=11,
-        spaceAfter=6,
-    )
-    pre_out = ParagraphStyle(
-        "PreOut",
-        parent=styles["Code"],
-        fontSize=8,
-        leading=10,
-        fontName="Courier",
-    )
-    pre_log = ParagraphStyle(
-        "PreLog",
-        parent=styles["Code"],
-        fontSize=7,
-        leading=8,
-        fontName="Courier",
-    )
-    story: list[Any] = []
-    story.append(Paragraph(escape(title), styles["Title"]))
-    story.append(Paragraph(f"<i>Generated {escape(datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC'))}</i>", body))
-    story.append(Spacer(1, 0.15 * inch))
-    story.append(Paragraph("<b>Your question</b>", styles["Heading3"]))
-    story.append(Preformatted(_truncate(query, 20000), pre_out, maxLineLength=110))
-    story.append(Spacer(1, 0.12 * inch))
-    story.append(Paragraph("<b>Agent output</b>", styles["Heading3"]))
-    story.append(Preformatted(_truncate(output_text or "", 50000), pre_out, maxLineLength=110))
-    story.append(Spacer(1, 0.12 * inch))
-    story.append(Paragraph("<b>Run log (tools &amp; LLM)</b>", styles["Heading3"]))
-    story.append(Preformatted(_truncate(log_text or "", 120000), pre_log, maxLineLength=130))
-    doc.build(story)
-    return buf.getvalue()
