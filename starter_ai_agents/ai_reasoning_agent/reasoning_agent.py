@@ -1,11 +1,22 @@
+import os
+
 from agno.agent import Agent
-from agno.models.openai import OpenAIChat
+from agno.models.google import Gemini
 from rich.console import Console
 
-regular_agent = Agent(model=OpenAIChat(id="gpt-4o-mini"), markdown=True)
+_api_key = os.environ.get("GOOGLE_API_KEY")
+if not _api_key:
+    raise RuntimeError(
+        "GOOGLE_API_KEY is not set. Create one at https://aistudio.google.com/apikey"
+    )
+
+regular_agent = Agent(
+    model=Gemini(id="gemini-2.5-flash", api_key=_api_key),
+    markdown=True,
+)
 console = Console()
 reasoning_agent = Agent(
-    model=OpenAIChat(id="gpt-4o"),
+    model=Gemini(id="gemini-2.5-pro", api_key=_api_key),
     reasoning=True,
     markdown=True,
     structured_outputs=True,

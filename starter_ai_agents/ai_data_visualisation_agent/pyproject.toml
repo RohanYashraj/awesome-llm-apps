@@ -1,0 +1,16 @@
+[project]
+name = "ai-data-visualisation-agent"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "e2b==1.0.5",
+    "e2b-code-interpreter==1.0.3",
+    "matplotlib>=3.10.8",
+    "pandas>=2.3.3",
+    "pillow>=11.1.0,<12",
+    "streamlit>=1.51.0",
+    "together>=1.4.0",
+    "watchdog>=6.0.0",
+]

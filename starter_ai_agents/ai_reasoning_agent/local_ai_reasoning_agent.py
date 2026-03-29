@@ -1,8 +1,20 @@
+import os
+
 from agno.agent import Agent
-from agno.models.ollama import Ollama
+from agno.models.google import Gemini
 from agno.playground import Playground, serve_playground_app
 
-reasoning_agent = Agent(name="Reasoning Agent", model=Ollama(id="qwq:32b"), markdown=True)
+_api_key = os.environ.get("GOOGLE_API_KEY")
+if not _api_key:
+    raise RuntimeError(
+        "GOOGLE_API_KEY is not set. Create one at https://aistudio.google.com/apikey"
+    )
+
+reasoning_agent = Agent(
+    name="Reasoning Agent",
+    model=Gemini(id="gemini-2.5-flash", api_key=_api_key),
+    markdown=True,
+)
 
 # UI for Reasoning agent
 app = Playground(agents=[reasoning_agent]).get_app()

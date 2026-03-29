@@ -53,6 +53,10 @@ Each skill contains:
 | [data-analyst](data-analyst/) | SQL, pandas, and statistical analysis |
 | [visualization-expert](visualization-expert/) | Chart selection and data visualization |
 
+### 🧮 Actuarial / Insurance
+
+Actuarial domain skills (reserving, pricing, pension/OPEB, IFRS 17 narrative, model validation) ship **inside** the standalone [**Actuarial Agents Suite**](../actuarial_agents_suite/README.md) at [`actuarial_agents_suite/skills/`](../actuarial_agents_suite/skills/) so that install is self-contained. Copy or symlink individual skill folders from there if you want to use them elsewhere.
+
 ### ⚡ Productivity
 
 | Skill | Description |
