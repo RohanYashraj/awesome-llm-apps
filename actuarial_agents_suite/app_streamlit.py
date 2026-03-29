@@ -46,17 +46,11 @@ render_maestros_shell()
 _ENV_KEY = get_gemini_api_key_from_env()
 
 
-def _effective_gemini_key() -> str | None:
-    """Sidebar override wins; else env (.env)."""
-    manual = (st.session_state.get("sidebar_manual_api_key") or "").strip()
-    if manual:
-        return manual
-    return _ENV_KEY
-
-
 def _require_key() -> bool:
-    if not _effective_gemini_key():
-        st.warning("Add your Gemini API key in the sidebar or set GEMINI_API_KEY / GOOGLE_API_KEY in `.env`.")
+    if not _ENV_KEY:
+        st.warning(
+            "Set `GEMINI_API_KEY` or `GOOGLE_API_KEY` in `.env` (see `.env.example`), then restart the app."
+        )
         return False
     return True
 
@@ -96,39 +90,16 @@ def _run_turn(agent, query: str, *, tab_label: str) -> None:
             }
 
 
-# --- Sidebar ---
+# --- Sidebar (top) ---
 with st.sidebar:
-    st.markdown("### Configuration")
-    st.caption(
-        "Keys are read from **`.env`** (`GEMINI_API_KEY` or `GOOGLE_API_KEY`). "
-        "Paste below only to **override** for this session."
-    )
-    st.text_input(
-        "Override API key (optional)",
-        type="password",
-        key="sidebar_manual_api_key",
-        placeholder="Leave empty to use .env",
-        help="Create a key at https://aistudio.google.com/apikey — or copy `.env.example` to `.env`.",
-    )
-    manual = (st.session_state.get("sidebar_manual_api_key") or "").strip()
-    if manual:
-        st.success("Using the override key from the field above (session only).")
-    elif _ENV_KEY:
-        st.success("Using API key from **environment** (`.env` or shell).")
+    st.markdown("### Settings")
+    if _ENV_KEY:
+        st.caption("Gemini API key is set via environment (`.env`).")
     else:
-        st.warning("Set `GEMINI_API_KEY` or `GOOGLE_API_KEY` in `.env`, or paste a key above.")
-
-    st.divider()
-    st.subheader("Privacy & compliance")
-    st.markdown(
-        """
-- **Do not** upload PHI, identifiable policyholder data, or unreleased financials.
-- Use **masked** or **synthetic** data when possible.
-- Outputs are **drafts** for qualified review—not filings or sign-offs.
-        """
-    )
-    st.divider()
-    st.caption("Primary model: `config.MODEL_PRIMARY` (default `gemini-3.1-pro-preview`).")
+        st.warning(
+            "No API key found. Add `GEMINI_API_KEY` or `GOOGLE_API_KEY` to `.env`, then restart."
+        )
+    st.caption("Model: `gemini-3.1-pro-preview` · Synthetic or masked data only; drafts, not filings.")
 
 
 st.markdown("##### Workstreams")
@@ -169,9 +140,7 @@ with tab_reserving:
             duck = DuckDbTools()
             duck.load_local_csv_to_table(path=temp_path, table="uploaded_data")
             extra = ["actuarial-reserving-pc"] if skill_exists("actuarial-reserving-pc") else None
-            agent = create_reserving_agent(
-                _effective_gemini_key(), duck, extra_skills=extra
-            )
+            agent = create_reserving_agent(_ENV_KEY, duck, extra_skills=extra)
             q = st.text_area("Question", key="q_res", height=100)
             if st.button("Run", key="b_res"):
                 _run_turn(agent, q, tab_label="P&C Reserving")
@@ -195,7 +164,7 @@ with tab_pricing:
         else:
             st.info("No file uploaded—the agent answers **conceptually** (no SQL on `uploaded_data`).")
             st.caption("Demo upload: `fixtures/sample_pricing_rating.csv`.")
-        agent = create_pricing_agent(_effective_gemini_key(), duck)
+        agent = create_pricing_agent(_ENV_KEY, duck)
         q = st.text_area("Question", key="q_pr", height=100)
         if st.button("Run", key="b_pr"):
             _run_turn(agent, q, tab_label="Pricing & rate")
@@ -210,7 +179,7 @@ with tab_experience:
             st.dataframe(df, width="stretch")
             duck = DuckDbTools()
             duck.load_local_csv_to_table(path=temp_path, table="uploaded_data")
-            agent = create_experience_study_agent(_effective_gemini_key(), duck)
+            agent = create_experience_study_agent(_ENV_KEY, duck)
             q = st.text_area("Question", key="q_ex", height=100)
             if st.button("Run", key="b_ex"):
                 _run_turn(agent, q, tab_label="Experience study")
@@ -224,7 +193,7 @@ with tab_validation:
     st.markdown("Paste **documentation excerpts**, **test plans**, or **code** below (no execution).")
     st.caption("Example context: `fixtures/sample_model_validation_context.md` (copy/paste).")
     if _require_key():
-        agent = create_validation_agent(_effective_gemini_key())
+        agent = create_validation_agent(_ENV_KEY)
         context = st.text_area("Context to review", key="v_ctx", height=180)
         q = st.text_area("What should the reviewer focus on?", key="q_val", height=80)
         if st.button("Run", key="b_val"):
@@ -243,9 +212,9 @@ with tab_pension:
                 st.dataframe(df.head(100), width="stretch")
                 duck = DuckDbTools()
                 duck.load_local_csv_to_table(path=temp_path, table="uploaded_data")
-                agent = create_pension_agent(_effective_gemini_key(), duck)
+                agent = create_pension_agent(_ENV_KEY, duck)
         else:
-            agent = create_pension_agent(_effective_gemini_key(), None)
+            agent = create_pension_agent(_ENV_KEY, None)
         q = st.text_area("Question", key="q_pe", height=100)
         if st.button("Run", key="b_pe"):
             _run_turn(agent, q, tab_label="Pension / benefits")
@@ -256,7 +225,7 @@ with tab_ifrs:
     st.markdown("Conceptual help only—not accounting advice.")
     st.caption("Example prompts: `fixtures/sample_ifrs_questions.md`.")
     if _require_key():
-        agent = create_ifrs_reporting_agent(_effective_gemini_key())
+        agent = create_ifrs_reporting_agent(_ENV_KEY)
         q = st.text_area("Question", key="q_if", height=120)
         if st.button("Run", key="b_if"):
             _run_turn(agent, q, tab_label="IFRS & risk narrative")
@@ -267,15 +236,15 @@ with tab_research:
     st.markdown("Uses **ddgs** metasearch (multiple backends)—verify citations before relying on them.")
     st.caption("Example questions: `fixtures/sample_research_questions.txt`.")
     if _require_key():
-        agent = create_regulatory_research_agent(_effective_gemini_key())
+        agent = create_regulatory_research_agent(_ENV_KEY)
         q = st.text_area("Research question", key="q_rr", height=120)
         if st.button("Run", key="b_rr"):
             _run_turn(agent, q, tab_label="Regulatory research")
 
-# --- Sidebar: export (must run after tabs / _run_turn so session_state is current on the same run) ---
+# --- Sidebar: export (after tabs so `last_agent_run` is current) ---
 with st.sidebar:
     st.divider()
-    st.subheader("Export last run")
+    st.markdown("### Export")
     last = st.session_state.get("last_agent_run")
     if last:
         try:
@@ -290,9 +259,9 @@ with st.sidebar:
                 file_name=f"actuarial_agent_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.pdf",
                 mime="application/pdf",
                 key="dl_pdf_last_run",
-                help="Contains your question and the agent answer (Markdown formatted). Activity log stays in the app only.",
+                help="Question and answer only (no activity log).",
             )
         except Exception as ex:
-            st.caption(f"PDF build failed: {ex}")
+            st.caption(f"PDF unavailable: {ex}")
     else:
-        st.caption("Run an agent once to enable PDF download.")
+        st.caption("Run an agent to download.")

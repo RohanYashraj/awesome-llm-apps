@@ -12,7 +12,7 @@ Self-contained practitioner **decision support** agents using [Agno](https://git
 |------|--------|
 | **1. Python** | **3.11+** (`.python-version` pins **3.12** for [uv](https://docs.astral.sh/uv/); override if needed). |
 | **2. Dependencies** | Use **[uv](https://docs.astral.sh/uv/)** only (`uv sync`). Do not rely on a sibling `awesome_agent_skills` checkout—skills live in [`skills/`](skills/). |
-| **3. API key** | Get a **Google AI API key** from [Google AI Studio](https://aistudio.google.com/apikey). **Recommended:** copy [`.env.example`](.env.example) to **`.env`** in this folder and set **`GEMINI_API_KEY`** or **`GOOGLE_API_KEY`**. Optional: paste an override in the sidebar (session only). |
+| **3. API key** | Get a **Google AI API key** from [Google AI Studio](https://aistudio.google.com/apikey). Copy [`.env.example`](.env.example) to **`.env`** in this folder and set **`GEMINI_API_KEY`** or **`GOOGLE_API_KEY`**, then restart the app. |
 | **4. Model ID** | Default LLM is **`gemini-3.1-pro-preview`** in [`config.py`](config.py). Update `MODEL_PRIMARY` / `MODEL_FAST` if Google renames models. |
 | **5. Regulatory research tab** | Uses **`ddgs`** (metasearch, backend `auto`). Optional env: `DDGS_TIMEOUT` (seconds, default 25), `DDGS_PROXY` / `HTTPS_PROXY`, `DDGS_VERIFY_SSL=false` only if corporate SSL inspection breaks HTTPS. |
 | **6. PDF export** | Uses **[Playwright](https://playwright.dev/python/)** + **headless Chromium** (Chrome’s print-to-PDF). After `uv sync`, run **`uv run playwright install chromium`** once. See [PDF export](#pdf-export-playwright) below. |
@@ -61,7 +61,7 @@ Open the URL Streamlit prints (usually `http://localhost:8501`).
 ### Activity log and PDF export
 
 - Each **Run** opens an **Activity log** expander that updates **live** while the agent works. It shows **tool calls** (e.g. DuckDB / pandas) with arguments and results, plus **LLM request** start/completion (including token counts when the provider supplies them).
-- After at least one run, use **Download PDF (answer only)** at the **bottom of the sidebar** (scroll down; it appears there after your run completes). The PDF contains your **question** and the **agent answer** with Markdown rendered via CSS (headings, lists, tables, code). **Activity log is not included** in the PDF (it remains in the app only).
+- After at least one run, use **Download PDF (answer only)** at the **bottom of the sidebar** (scroll down; it appears there after your run completes). The PDF contains your **question** and the **agent answer** with Markdown rendered via CSS (headings, lists, tables, code). **Activity log is not included** in the PDF (it remains in the app only). The PDF template includes **MaestrosAI** branding (header, [maestrosai.in](https://maestrosai.in) link, footer disclaimer) aligned with the app UI.
 
 ### PDF export (Playwright Chromium)
 

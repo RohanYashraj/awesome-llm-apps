@@ -10,23 +10,29 @@ from xml.sax.saxutils import escape
 
 from bs4 import BeautifulSoup
 
+MAESTROSAI_URL = "https://maestrosai.in"
+MAESTROSAI_DOMAIN = "maestrosai.in"
+
 _MD_EXTENSIONS = [
     "markdown.extensions.extra",
     "markdown.extensions.nl2br",
     "markdown.extensions.sane_lists",
 ]
 
+# Match Streamlit / maestrosai.in look; fonts loaded in HTML <head> for Chromium print.
 _PRINT_CSS = """
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600;700&display=swap');
+
 /* Letter size; non-zero @page margin so Chromium does not paint content flush to the sheet edge. */
 @page {
   size: letter;
   margin: 0.75in;
 }
 html {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
   font-size: 11px;
   line-height: 1.5;
-  color: #1a1a1a;
+  color: #0f172a;
   -webkit-print-color-adjust: exact;
   print-color-adjust: exact;
 }
@@ -35,32 +41,110 @@ body {
   padding: 0;
   box-sizing: border-box;
 }
-h1 {
-  font-size: 18px;
+
+/* —— MaestrosAI brand header —— */
+.pdf-brand {
+  margin: 0 0 18px 0;
+  padding: 14px 16px;
+  border-radius: 10px;
+  background: linear-gradient(125deg, #e0f2fe 0%, #f0fdfa 45%, #fffbeb 100%);
+  border: 1px solid rgba(13, 148, 136, 0.2);
+  border-left: 4px solid #0d9488;
+}
+.pdf-brand-row {
+  display: table;
+  width: 100%;
+  margin-bottom: 10px;
+}
+.pdf-brand-mark {
+  display: table-cell;
+  vertical-align: middle;
+  width: 40px;
+}
+.pdf-brand-mark-inner {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(145deg, #14b8a6 0%, #0f766e 100%);
+  color: #fff;
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 10px;
+  text-align: center;
+  line-height: 36px;
+  letter-spacing: -0.02em;
+}
+.pdf-brand-text {
+  display: table-cell;
+  vertical-align: middle;
+  padding-left: 10px;
+}
+.pdf-brand-name {
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  color: #0f172a;
+  text-transform: uppercase;
+}
+.pdf-brand-tag {
+  font-size: 8px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #64748b;
+  margin-top: 2px;
+}
+.pdf-badge {
+  display: inline-block;
+  font-size: 7px;
   font-weight: 600;
-  margin: 0 0 8px 0;
-  padding-bottom: 6px;
-  border-bottom: 1px solid #e0e0e0;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #7c3aed 0%, #db2777 100%);
+  color: #fff;
+  margin-bottom: 8px;
+}
+.pdf-doc-title {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 17px;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.25;
+  margin: 0 0 6px 0;
+  letter-spacing: -0.02em;
 }
 .meta {
-  font-size: 10px;
-  color: #666;
-  margin: 0 0 16px 0;
+  font-size: 9px;
+  color: #64748b;
+  margin: 0;
 }
-h2.section {
-  font-size: 11px;
+.meta a {
+  color: #0f766e;
+  text-decoration: none;
   font-weight: 600;
+}
+
+h2.section {
+  font-family: 'Inter', sans-serif;
+  font-size: 10px;
+  font-weight: 700;
   margin: 18px 0 8px 0;
-  color: #222;
+  color: #0f766e;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 .question-block {
   font-size: 10px;
   line-height: 1.45;
   margin: 0 0 16px 0;
   padding: 10px 12px;
-  background: #f6f7f9;
-  border-radius: 6px;
-  border: 1px solid #e8e8e8;
+  background: #f8fafc;
+  border-radius: 8px;
+  border: 1px solid rgba(13, 148, 136, 0.25);
+  border-left: 3px solid #14b8a6;
   white-space: pre-wrap;
   word-wrap: break-word;
 }
@@ -122,12 +206,33 @@ h2.section {
   vertical-align: top;
 }
 .output-block th {
-  background: #f0f0f2;
+  background: #ecfdf5;
   font-weight: 600;
+  color: #0f172a;
+  border-color: #99f6e4;
 }
 .output-block a {
-  color: #0b57d0;
+  color: #0f766e;
   text-decoration: none;
+  font-weight: 500;
+}
+.pdf-footer {
+  margin-top: 28px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(15, 23, 42, 0.12);
+  font-size: 9px;
+  color: #64748b;
+  line-height: 1.5;
+}
+.pdf-footer-brand {
+  font-weight: 700;
+  color: #0f172a;
+  letter-spacing: 0.04em;
+}
+.pdf-footer a {
+  color: #0f766e;
+  text-decoration: none;
+  font-weight: 600;
 }
 .output-block hr {
   border: none;
@@ -181,24 +286,41 @@ def _build_html_document(
 ) -> str:
     safe_title = escape(title)
     safe_meta = escape(meta_ts)
+    safe_url = escape(MAESTROSAI_URL)
+    safe_domain = escape(MAESTROSAI_DOMAIN)
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8"/>
-<title>{safe_title}</title>
+<title>{safe_title} · MAESTROSAI</title>
 <style>
 {_PRINT_CSS}
 </style>
 </head>
 <body>
-<h1>{safe_title}</h1>
-<p class="meta"><em>Generated {safe_meta}</em></p>
+<header class="pdf-brand">
+  <div class="pdf-badge">Actuarial suite · Powered by Gemini</div>
+  <div class="pdf-brand-row">
+    <div class="pdf-brand-mark"><div class="pdf-brand-mark-inner">AI</div></div>
+    <div class="pdf-brand-text">
+      <div class="pdf-brand-name">MAESTROSAI</div>
+      <div class="pdf-brand-tag">Insurance AI systems</div>
+    </div>
+  </div>
+  <div class="pdf-doc-title">{safe_title}</div>
+  <p class="meta"><em>Generated {safe_meta}</em> · <a href="{safe_url}">{safe_domain}</a></p>
+</header>
 <h2 class="section">Your question</h2>
 <div class="question-block">{question_html}</div>
 <h2 class="section">Agent output</h2>
 <div class="output-block">
 {body_html}
 </div>
+<footer class="pdf-footer">
+  <span class="pdf-footer-brand">MAESTROSAI</span> — Insurance AI systems ·
+  <a href="{safe_url}">{safe_domain}</a><br/>
+  Draft decision support only. Not professional actuarial advice, legal advice, or filing-ready output.
+</footer>
 </body>
 </html>
 """
