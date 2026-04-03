@@ -17,6 +17,7 @@ _MD_EXTENSIONS = [
     "markdown.extensions.extra",
     "markdown.extensions.nl2br",
     "markdown.extensions.sane_lists",
+    "markdown.extensions.tables",
 ]
 
 # Match Streamlit / maestrosai.in look; fonts loaded in HTML <head> for Chromium print.
@@ -237,7 +238,23 @@ h2.section {
 .output-block hr {
   border: none;
   border-top: 1px solid #ccc;
-  margin: 12px 0;
+  margin: 16px 0;
+  page-break-after: avoid;
+}
+.output-block table {
+  page-break-inside: avoid;
+}
+.output-block h2, .output-block h3 {
+  page-break-after: avoid;
+}
+.output-block li {
+  page-break-inside: avoid;
+}
+.output-block pre {
+  page-break-inside: avoid;
+}
+.output-block strong {
+  color: #0f172a;
 }
 """
 
@@ -362,7 +379,7 @@ def build_run_pdf_bytes(
             browser = p.chromium.launch(headless=True)
             try:
                 page = browser.new_page()
-                page.set_content(html_doc, wait_until="load")
+                page.set_content(html_doc, wait_until="networkidle")
                 # Use CSS @page margins (see _PRINT_CSS). API margins + @page margin:0 previously
                 # produced edge-to-edge content in headless Chromium; prefer_css_page_size honors @page.
                 pdf_bytes = page.pdf(

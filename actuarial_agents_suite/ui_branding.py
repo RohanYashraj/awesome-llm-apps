@@ -271,7 +271,7 @@ def render_maestros_shell() -> None:
     <div class="maestros-badge">Actuarial suite · Powered by aiactuaries.org</div>
     <h1 class="maestros-h1">AI systems actuaries can trust.</h1>
     <p class="maestros-lead">
-      Practitioner decision-support for reserving, pricing, validation, pensions, IFRS narrative, and research—
+      Practitioner decision-support for reserving, pricing, model validation, and experience studies—
       with explainable tooling and governance-minded defaults.
     </p>
   </div>
