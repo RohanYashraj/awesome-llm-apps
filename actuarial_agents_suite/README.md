@@ -49,7 +49,7 @@ actuarial_agents_suite/
 
 Shared behavior across agents:
 
-- **Gemini** (`gemini-3.1-pro-preview`) via `agno.models.google.Gemini`
+- **Gemini** (`gemini-3.1-flash-lite-preview`) via `agno.models.google.Gemini`
 - **DuckDB** + **Pandas** on uploaded CSV/Excel
 - **Domain tools** in `tools.py`
 - **`skills/<name>/SKILL.md`** merged into the system prompt at runtime

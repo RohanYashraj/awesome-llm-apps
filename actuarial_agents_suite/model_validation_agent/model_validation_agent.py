@@ -141,7 +141,7 @@ def run_model_validation_agent():
 
             validation_agent = Agent(
                 model=Gemini(
-                    id="gemini-3.1-pro-preview",
+                    id="gemini-3.1-flash-lite-preview",
                     api_key=st.session_state.gemini_api_key,
                 ),
                 tools=[

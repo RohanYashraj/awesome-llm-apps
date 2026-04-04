@@ -87,7 +87,7 @@ if uploaded_file is not None and "gemini_api_key" in st.session_state:
         
         # Initialize the Agent with DuckDB and Pandas tools
         data_analyst_agent = Agent(
-            model=Gemini(id="gemini-3.1-pro-preview", api_key=st.session_state.gemini_api_key),
+            model=Gemini(id="gemini-3.1-flash-lite-preview", api_key=st.session_state.gemini_api_key),
             tools=[duckdb_tools, PandasTools()],
             system_message="You are an expert data analyst. Use the 'uploaded_data' table to answer user queries. Generate SQL queries using DuckDB tools to solve the user's query. Provide clear and concise answers with the results.",
             markdown=True,

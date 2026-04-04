@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 def initialize_agents(api_key: str) -> tuple[Agent, Agent, Agent, Agent]:
     try:
-        model = Gemini(id="gemini-3.1-pro-preview", api_key=api_key)
+        model = Gemini(id="gemini-3.1-flash-lite-preview", api_key=api_key)
         
         therapist_agent = Agent(
             model=model,
