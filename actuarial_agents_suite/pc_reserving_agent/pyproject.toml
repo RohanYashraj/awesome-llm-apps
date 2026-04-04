@@ -13,4 +13,5 @@ dependencies = [
     "pandas>=2.0.0",
     "scipy>=1.11.0",
     "streamlit>=1.32,<2.0",
+    "watchdog>=6.0.0",
 ]
