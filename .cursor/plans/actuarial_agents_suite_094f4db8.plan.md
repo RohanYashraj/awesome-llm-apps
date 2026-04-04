@@ -4,46 +4,46 @@ overview: Create a standalone `actuarial_agents_suite/` directory containing fou
 todos:
   - id: create-structure
     content: Create actuarial_agents_suite/ directory structure with all subdirectories and __init__.py files
-    status: pending
+    status: completed
   - id: requirements
     content: Create shared requirements.txt with Gemini/Agno/Streamlit/Pandas/NumPy/SciPy dependencies
-    status: pending
+    status: completed
   - id: pc-pricing-tools
     content: Build pc_pricing_agent/tools.py with loss ratio, rate indication, trending, pure premium, large loss tools
-    status: pending
+    status: completed
   - id: pc-pricing-agent
     content: Build pc_pricing_agent/pc_pricing_agent.py -- Agno+Gemini agent with Streamlit UI, DuckDB/Pandas + custom pricing tools
-    status: pending
+    status: completed
   - id: pc-reserving-tools
     content: Build pc_reserving_agent/tools.py with chain ladder, BF, IBNR, triangle, Mack std error tools
-    status: pending
+    status: completed
   - id: pc-reserving-agent
     content: Build pc_reserving_agent/pc_reserving_agent.py -- Agno+Gemini agent with Streamlit UI for triangle analysis
-    status: pending
+    status: completed
   - id: model-validation-tools
     content: Build model_validation_agent/tools.py with back-test, sensitivity, residual, assumption check tools
-    status: pending
+    status: completed
   - id: model-validation-agent
     content: Build model_validation_agent/model_validation_agent.py -- Agno+Gemini agent with Streamlit UI for model validation
-    status: pending
+    status: completed
   - id: experience-tools
     content: Build experience_agent/tools.py with A/E ratio, credibility, graduation, decrement, trend tools
-    status: pending
+    status: completed
   - id: experience-agent
     content: Build experience_agent/experience_agent.py -- Agno+Gemini agent with Streamlit UI for experience studies
-    status: pending
+    status: completed
   - id: skills
     content: Create 4 SKILL.md files under skills/ for pc-pricing, pc-reserving, model-validation, experience-study
-    status: pending
+    status: completed
   - id: hub-app
     content: Build app_streamlit.py -- unified multi-page Streamlit hub navigating to all 4 agents
-    status: pending
+    status: completed
   - id: readme
     content: Create suite-level README.md and per-agent README.md files
-    status: pending
+    status: completed
   - id: update-refs
     content: Update awesome_agent_skills/README.md links if needed to point to the new suite
-    status: pending
+    status: completed
 isProject: false
 ---
 

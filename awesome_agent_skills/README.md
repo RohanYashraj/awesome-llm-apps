@@ -55,7 +55,16 @@ Each skill contains:
 
 ### 🧮 Actuarial / Insurance
 
-Actuarial domain skills (reserving, pricing, pension/OPEB, IFRS 17 narrative, model validation) ship **inside** the standalone [**Actuarial Agents Suite**](../actuarial_agents_suite/README.md) at [`actuarial_agents_suite/skills/`](../actuarial_agents_suite/skills/) so that install is self-contained. Copy or symlink individual skill folders from there if you want to use them elsewhere.
+Actuarial domain skills ship **inside** the standalone [**Actuarial Agents Suite**](../actuarial_agents_suite/README.md) at [`actuarial_agents_suite/skills/`](../actuarial_agents_suite/skills/) so that install is self-contained. Available skills:
+
+| Skill | Description |
+|-------|-------------|
+| [pc-pricing](../actuarial_agents_suite/skills/pc-pricing/) | P&C ratemaking — loss ratios, rate indications, trending |
+| [pc-reserving](../actuarial_agents_suite/skills/pc-reserving/) | Claims reserving — chain ladder, BF, IBNR, Mack |
+| [model-validation](../actuarial_agents_suite/skills/model-validation/) | Back-testing, sensitivity, residual diagnostics, ASOP 56 |
+| [experience-study](../actuarial_agents_suite/skills/experience-study/) | A/E analysis, credibility, graduation, decrement rates |
+
+Copy or symlink individual skill folders from there if you want to use them elsewhere.
 
 ### ⚡ Productivity
 
