@@ -6,7 +6,7 @@
     "codespaces": {
       "openFiles": [
         "README.md",
-        "actuarial_agents_suite/app_streamlit.py"
+        "actuarial_agents_suite/pc_pricing_agent/pc_pricing_agent.py"
       ]
     },
     "vscode": {
@@ -17,9 +17,9 @@
       ]
     }
   },
-  "updateContentCommand": "[ -f packages.txt ] && sudo apt update && sudo apt upgrade -y && sudo xargs apt install -y <packages.txt; [ -f requirements.txt ] && pip3 install --user -r requirements.txt; pip3 install --user streamlit; echo '✅ Packages installed and Requirements met'",
+  "updateContentCommand": "[ -f packages.txt ] && sudo apt update && sudo apt upgrade -y && sudo xargs apt install -y <packages.txt; [ -f requirements.txt ] && pip3 install --user -r requirements.txt; pip3 install --user streamlit; [ -f actuarial_agents_suite/pc_pricing_agent/requirements.txt ] && pip3 install --user -r actuarial_agents_suite/pc_pricing_agent/requirements.txt; echo '✅ Packages installed and Requirements met'",
   "postAttachCommand": {
-    "server": "streamlit run actuarial_agents_suite/app_streamlit.py --server.enableCORS false --server.enableXsrfProtection false"
+    "server": "streamlit run actuarial_agents_suite/pc_pricing_agent/pc_pricing_agent.py --server.enableCORS false --server.enableXsrfProtection false"
   },
   "portsAttributes": {
     "8501": {

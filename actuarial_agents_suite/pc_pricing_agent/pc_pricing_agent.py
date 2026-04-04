@@ -12,6 +12,7 @@ from agno.models.google import Gemini
 from agno.tools.duckdb import DuckDbTools
 from agno.tools.pandas import PandasTools
 
+from agent_utils import load_skill_markdown
 from tools import (
     compute_indicated_rate_change,
     compute_loss_ratio,
@@ -20,7 +21,9 @@ from tools import (
     trending_factors,
 )
 
-SYSTEM_PROMPT = """You are a senior P&C actuarial pricing analyst. You have deep expertise in
+SKILL_SUBDIR = "pc-pricing"
+
+SYSTEM_PROMPT_BASE = """You are a senior P&C actuarial pricing analyst. You have deep expertise in
 property & casualty insurance ratemaking following CAS (Casualty Actuarial Society)
 standards and ASOPs (Actuarial Standards of Practice).
 
@@ -39,6 +42,19 @@ When answering:
 5. Cite relevant ASOPs (e.g., ASOP 13 – Trending, ASOP 25 – Credibility) when applicable.
 6. Flag limitations and assumptions explicitly.
 """
+
+
+def build_system_prompt() -> str:
+    skill = load_skill_markdown(SKILL_SUBDIR)
+    if not skill:
+        return SYSTEM_PROMPT_BASE
+    return (
+        SYSTEM_PROMPT_BASE
+        + "\n\n## Bundled domain skill (from skills/"
+        + SKILL_SUBDIR
+        + "/SKILL.md)\n\n"
+        + skill
+    )
 
 
 def preprocess_and_save(file):
@@ -120,7 +136,7 @@ def run_pricing_agent():
                     compute_pure_premium,
                     large_loss_cap_analysis,
                 ],
-                system_message=SYSTEM_PROMPT,
+                system_message=build_system_prompt(),
                 markdown=True,
             )
 

@@ -2,6 +2,8 @@
 
 An AI-powered actuarial experience study analyst that uses **Gemini** to compute A/E ratios, assess credibility, graduate rates, and analyse trends.
 
+This folder is **self-contained**: `pyproject.toml`, `requirements.txt`, `.python-version`, `skills/experience-study/SKILL.md`, `agent_utils.py`, `tools.py`, and the Streamlit app.
+
 ## Features
 
 - **A/E Analysis** — actual-to-expected ratios overall and by segment
@@ -10,13 +12,22 @@ An AI-powered actuarial experience study analyst that uses **Gemini** to compute
 - **Decrement Rates** — crude qx, lapse, withdrawal rates from exposures
 - **Trend Analysis** — linear and log-linear trend fitting with R-squared
 - **SQL Analytics** — query uploaded data with DuckDB
-- **Data Manipulation** — Pandas tools for transformations
+- **Bundled skill** — `skills/experience-study/SKILL.md`
 
 ## Usage
 
+From **this directory**:
+
 ```bash
-pip install -r ../requirements.txt
+uv sync
+# or: pip install -r requirements.txt
 streamlit run experience_agent.py
+```
+
+From the **monorepo root** (after installing deps in **this** folder):
+
+```bash
+streamlit run actuarial_agents_suite/experience_agent/experience_agent.py
 ```
 
 1. Enter your Gemini API key in the sidebar.

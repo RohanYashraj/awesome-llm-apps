@@ -13,6 +13,7 @@ from agno.tools.duckdb import DuckDbTools
 from agno.tools.duckduckgo import DuckDuckGoTools
 from agno.tools.pandas import PandasTools
 
+from agent_utils import load_skill_markdown
 from tools import (
     assumption_reasonableness_check,
     back_test,
@@ -21,7 +22,9 @@ from tools import (
     sensitivity_analysis,
 )
 
-SYSTEM_PROMPT = """You are a senior actuarial model validation specialist. You follow the
+SKILL_SUBDIR = "model-validation"
+
+SYSTEM_PROMPT_BASE = """You are a senior actuarial model validation specialist. You follow the
 principles of ASOP 56 (Modeling), SR 11-7 (Federal Reserve model risk management
 guidance), and industry best practices for independent model validation.
 
@@ -44,6 +47,19 @@ When validating a model:
 Always present results in organised tables and clearly state whether the model
 passes or requires remediation. Reference relevant standards.
 """
+
+
+def build_system_prompt() -> str:
+    skill = load_skill_markdown(SKILL_SUBDIR)
+    if not skill:
+        return SYSTEM_PROMPT_BASE
+    return (
+        SYSTEM_PROMPT_BASE
+        + "\n\n## Bundled domain skill (from skills/"
+        + SKILL_SUBDIR
+        + "/SKILL.md)\n\n"
+        + skill
+    )
 
 
 def preprocess_and_save(file):
@@ -138,7 +154,7 @@ def run_model_validation_agent():
                     assumption_reasonableness_check,
                     generate_validation_report,
                 ],
-                system_message=SYSTEM_PROMPT,
+                system_message=build_system_prompt(),
                 markdown=True,
             )
 

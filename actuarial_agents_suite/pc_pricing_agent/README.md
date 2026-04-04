@@ -2,6 +2,8 @@
 
 An AI-powered P&C insurance pricing analyst that uses **Gemini** to analyse loss and premium data, compute rate indications, and support ratemaking workflows.
 
+This folder is **self-contained**: `pyproject.toml`, `requirements.txt`, `.python-version`, `skills/pc-pricing/SKILL.md` (loaded into the system prompt), `agent_utils.py`, `tools.py`, and the Streamlit app.
+
 ## Features
 
 - **Loss Ratio Analysis** — basic, adjusted, and combined loss-and-LAE ratios
@@ -11,12 +13,22 @@ An AI-powered P&C insurance pricing analyst that uses **Gemini** to analyse loss
 - **Large-Loss Treatment** — cap individual losses and measure excess removed
 - **SQL Analytics** — query uploaded data with DuckDB
 - **Data Manipulation** — Pandas tools for transformations
+- **Bundled skill** — `skills/pc-pricing/SKILL.md` (Agent Skills format)
 
 ## Usage
 
+From **this directory** (standalone):
+
 ```bash
-pip install -r ../requirements.txt
+uv sync
+# or: pip install -r requirements.txt
 streamlit run pc_pricing_agent.py
+```
+
+From the **monorepo root** (after `uv sync` or `pip install` in **this** folder):
+
+```bash
+streamlit run actuarial_agents_suite/pc_pricing_agent/pc_pricing_agent.py
 ```
 
 1. Enter your Gemini API key in the sidebar.

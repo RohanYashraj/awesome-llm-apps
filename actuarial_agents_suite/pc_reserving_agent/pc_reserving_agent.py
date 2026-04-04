@@ -12,6 +12,7 @@ from agno.models.google import Gemini
 from agno.tools.duckdb import DuckDbTools
 from agno.tools.pandas import PandasTools
 
+from agent_utils import load_skill_markdown
 from tools import (
     bornhuetter_ferguson,
     build_triangle,
@@ -20,7 +21,9 @@ from tools import (
     mack_method_std_error,
 )
 
-SYSTEM_PROMPT = """You are a senior P&C actuarial reserving specialist. You have deep expertise in
+SKILL_SUBDIR = "pc-reserving"
+
+SYSTEM_PROMPT_BASE = """You are a senior P&C actuarial reserving specialist. You have deep expertise in
 claims reserving methodologies following CAS standards and ASOPs (especially ASOP 43 –
 Unpaid Claim Estimates).
 
@@ -43,6 +46,19 @@ When answering:
 6. Cite relevant ASOPs and professional guidance.
 7. Flag data quality issues, thin data, and judgmental selections.
 """
+
+
+def build_system_prompt() -> str:
+    skill = load_skill_markdown(SKILL_SUBDIR)
+    if not skill:
+        return SYSTEM_PROMPT_BASE
+    return (
+        SYSTEM_PROMPT_BASE
+        + "\n\n## Bundled domain skill (from skills/"
+        + SKILL_SUBDIR
+        + "/SKILL.md)\n\n"
+        + skill
+    )
 
 
 def preprocess_and_save(file):
@@ -132,7 +148,7 @@ def run_reserving_agent():
                     compute_ibnr,
                     mack_method_std_error,
                 ],
-                system_message=SYSTEM_PROMPT,
+                system_message=build_system_prompt(),
                 markdown=True,
             )
 

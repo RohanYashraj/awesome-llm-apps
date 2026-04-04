@@ -55,16 +55,16 @@ Each skill contains:
 
 ### 🧮 Actuarial / Insurance
 
-Actuarial domain skills ship **inside** the standalone [**Actuarial Agents Suite**](../actuarial_agents_suite/README.md) at [`actuarial_agents_suite/skills/`](../actuarial_agents_suite/skills/) so that install is self-contained. Available skills:
+Actuarial domain skills ship **inside each agent folder** of the [**Actuarial Agents Suite**](../actuarial_agents_suite/README.md). Available skills:
 
 | Skill | Description |
 |-------|-------------|
-| [pc-pricing](../actuarial_agents_suite/skills/pc-pricing/) | P&C ratemaking — loss ratios, rate indications, trending |
-| [pc-reserving](../actuarial_agents_suite/skills/pc-reserving/) | Claims reserving — chain ladder, BF, IBNR, Mack |
-| [model-validation](../actuarial_agents_suite/skills/model-validation/) | Back-testing, sensitivity, residual diagnostics, ASOP 56 |
-| [experience-study](../actuarial_agents_suite/skills/experience-study/) | A/E analysis, credibility, graduation, decrement rates |
+| [pc-pricing](../actuarial_agents_suite/pc_pricing_agent/skills/pc-pricing/) | P&C ratemaking — loss ratios, rate indications, trending |
+| [pc-reserving](../actuarial_agents_suite/pc_reserving_agent/skills/pc-reserving/) | Claims reserving — chain ladder, BF, IBNR, Mack |
+| [model-validation](../actuarial_agents_suite/model_validation_agent/skills/model-validation/) | Back-testing, sensitivity, residual diagnostics, ASOP 56 |
+| [experience-study](../actuarial_agents_suite/experience_agent/skills/experience-study/) | A/E analysis, credibility, graduation, decrement rates |
 
-Copy or symlink individual skill folders from there if you want to use them elsewhere.
+Copy or symlink an agent's `skills/<name>/` folder if you want to use a skill elsewhere.
 
 ### ⚡ Productivity
 

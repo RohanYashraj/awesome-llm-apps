@@ -2,6 +2,8 @@
 
 An AI-powered actuarial model validation specialist that uses **Gemini** to back-test models, run sensitivity analyses, and produce structured validation reports.
 
+This folder is **self-contained**: `pyproject.toml` (includes `duckduckgo-search`), `requirements.txt`, `.python-version`, `skills/model-validation/SKILL.md`, `agent_utils.py`, `tools.py`, and the Streamlit app.
+
 ## Features
 
 - **Back-testing** — MAE, RMSE, MAPE, bias between predicted and actual
@@ -10,13 +12,22 @@ An AI-powered actuarial model validation specialist that uses **Gemini** to back
 - **Assumption Review** — compare assumptions to industry ranges
 - **Validation Reports** — structured PASS / NEEDS REVIEW output
 - **Regulatory Search** — DuckDuckGo for standards and benchmarks
-- **SQL Analytics** — query uploaded data with DuckDB
+- **Bundled skill** — `skills/model-validation/SKILL.md`
 
 ## Usage
 
+From **this directory**:
+
 ```bash
-pip install -r ../requirements.txt
+uv sync
+# or: pip install -r requirements.txt
 streamlit run model_validation_agent.py
+```
+
+From the **monorepo root** (after installing deps in **this** folder):
+
+```bash
+streamlit run actuarial_agents_suite/model_validation_agent/model_validation_agent.py
 ```
 
 1. Enter your Gemini API key in the sidebar.
