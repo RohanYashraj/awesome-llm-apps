@@ -778,7 +778,7 @@ with st.sidebar:
         options=[
             "anthropic/claude-sonnet-4.6",
             "anthropic/claude-opus-4.6",
-            "google/gemini-3.1-flash-lite-preview",
+            "google/gemini-3-flash-preview",
             "openai/gpt-5.4",
             "openai/gpt-4o",
         ],

@@ -113,7 +113,7 @@ actuarial_agents_suite/
 
 **Purpose**: Property & Casualty insurance pricing analysis -- loss ratio analysis, rate adequacy testing, indicated rate changes, exposure/premium trending, class plan relativities.
 
-**Model**: `Gemini(id="gemini-3.1-flash-lite-preview")`
+**Model**: `Gemini(id="gemini-3-flash-preview")`
 
 **Tools**:
 - `DuckDbTools` + `PandasTools` (from Agno) for data exploration
@@ -132,7 +132,7 @@ actuarial_agents_suite/
 
 **Purpose**: Claims reserving -- development triangle analysis, chain ladder method, Bornhuetter-Ferguson method, IBNR estimation, reserve adequacy assessment.
 
-**Model**: `Gemini(id="gemini-3.1-flash-lite-preview")`
+**Model**: `Gemini(id="gemini-3-flash-preview")`
 
 **Tools**:
 - `DuckDbTools` + `PandasTools` for triangle data
@@ -151,7 +151,7 @@ actuarial_agents_suite/
 
 **Purpose**: Validate actuarial models -- back-testing, assumption validation, sensitivity analysis, residual diagnostics, regulatory compliance checks, model governance documentation.
 
-**Model**: `Gemini(id="gemini-3.1-flash-lite-preview")`
+**Model**: `Gemini(id="gemini-3-flash-preview")`
 
 **Tools**:
 - `DuckDbTools` + `PandasTools`
@@ -171,7 +171,7 @@ actuarial_agents_suite/
 
 **Purpose**: Experience studies -- actual-to-expected (A/E) analysis, mortality/morbidity/lapse rate studies, credibility weighting, experience graduation, trend analysis.
 
-**Model**: `Gemini(id="gemini-3.1-flash-lite-preview")`
+**Model**: `Gemini(id="gemini-3-flash-preview")`
 
 **Tools**:
 - `DuckDbTools` + `PandasTools`

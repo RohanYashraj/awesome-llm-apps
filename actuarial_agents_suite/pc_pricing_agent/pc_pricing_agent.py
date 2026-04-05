@@ -57,6 +57,21 @@ def build_system_prompt() -> str:
     )
 
 
+def render_data_privacy_note() -> None:
+    st.divider()
+    st.markdown(
+        """
+<div style="font-size:0.78rem;line-height:1.45;color:var(--gray-600, #6b7280);margin-top:0.25rem;">
+<em>*Data Privacy Declaration*</em><br><br>
+This AI tool does not store, retain, or save any user data. All information entered is processed in real time and is not recorded in any database or storage system.<br>
+Once the page is refreshed or the session ends, all data is immediately and permanently deleted. No history, logs, or user inputs are preserved beyond the active session.<br>
+Users can interact with this tool with full confidence that their data remains private and is not stored at any point.
+</div>
+        """.strip(),
+        unsafe_allow_html=True,
+    )
+
+
 def preprocess_and_save(file):
     try:
         if file.name.endswith(".csv"):
@@ -124,7 +139,7 @@ def run_pricing_agent():
 
             pricing_agent = Agent(
                 model=Gemini(
-                    id="gemini-3.1-flash-lite-preview",
+                    id="gemini-3-flash-preview",
                     api_key=st.session_state.gemini_api_key,
                 ),
                 tools=[
@@ -161,6 +176,8 @@ def run_pricing_agent():
                             st.markdown(content)
                         except Exception as e:
                             st.error(f"Agent error: {e}")
+
+    render_data_privacy_note()
 
 
 if __name__ == "__main__":
